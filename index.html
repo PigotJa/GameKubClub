@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>GameKub V7.3.4 (Stable Voice)</title>
+    <title>GameKub V7.3.5 (Force Mic)</title>
     
     <style>#err-box { display:none; position:fixed; top:0; left:0; width:100%; background:rgba(200,0,0,0.9); color:white; padding:10px; z-index:9999; font-size:10px; font-family:monospace; }</style>
     <div id="err-box"></div>
@@ -73,7 +73,6 @@
         const db = firebase.firestore();
         const ADMIN_EMAIL = "pigot488@gmail.com";
 
-        // Global Client
         let agoraClient = null;
         let localAudioTrack = null;
 
@@ -82,7 +81,7 @@
             const [page, setPage] = React.useState('login');
             const [showPostModal, setShowPostModal] = React.useState(false);
             const [voiceStatus, setVoiceStatus] = React.useState({ joined: false, roomName: '', micOn: true, users: [] });
-            const [isConnecting, setIsConnecting] = React.useState(false); // 🔥 เพิ่มตัวกันนิ้วรัว
+            const [isConnecting, setIsConnecting] = React.useState(false); 
 
             React.useEffect(() => {
                 const unsub = auth.onAuthStateChanged(u => {
@@ -92,29 +91,34 @@
                 return unsub;
             }, []);
 
+            // ⚡ ฟังก์ชันขอไมค์แบบใหม่ (Force Request)
             const handleVoice = async (action, roomName = "") => {
-                if (typeof AgoraRTC === 'undefined') return alert("⚠️ ระบบไมค์ยังโหลดไม่เสร็จ (เน็ตช้า) รอสักครู่...");
+                if (typeof AgoraRTC === 'undefined') return alert("⚠️ ระบบไมค์ยังโหลดไม่เสร็จ (เน็ตช้า)");
                 if (!agoraClient) agoraClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
 
                 if (action === 'join') {
-                    // 1. เช็คว่ากำลังต่อสายอยู่ไหม (กันนิ้วรัว)
                     if (isConnecting) return; 
-                    
-                    // 2. เช็คว่าอยู่ในห้องเดิมไหม
                     if (voiceStatus.joined && voiceStatus.roomName === roomName) return;
 
-                    setIsConnecting(true); // ล็อคปุ่ม
+                    setIsConnecting(true);
 
                     try {
-                        // 3. ถ้าอยู่ในห้องอื่น ให้วางสายก่อน (Auto Leave)
                         if (voiceStatus.joined) {
                             if (localAudioTrack) { localAudioTrack.close(); localAudioTrack = null; }
                             await agoraClient.leave();
                         }
 
-                        // 4. เข้าห้องใหม่
+                        // 🔥 จุดเปลี่ยน: ลองขอไมค์ก่อนเข้าห้องเลย
+                        try {
+                            localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+                        } catch (err) {
+                            // ถ้าขอไมค์ไม่ได้ ให้เตือนให้ไปตั้งค่า
+                            alert("❌ เปิดไมค์ไม่ได้! กรุณาไปที่ การตั้งค่า > แอพ > GameKub > อนุญาตสิทธิ์ไมโครโฟน");
+                            setIsConnecting(false);
+                            return;
+                        }
+
                         await agoraClient.join(AGORA_APP_ID, roomName, null, user.uid);
-                        localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
                         await agoraClient.publish([localAudioTrack]);
                         
                         setVoiceStatus({ joined: true, roomName: roomName, micOn: true, users: [user.uid] });
@@ -127,12 +131,11 @@
                         agoraClient.on("user-left", (u) => setVoiceStatus(prev => ({...prev, users: prev.users.filter(id => id !== u.uid)})));
 
                     } catch (error) {
-                        // ดัก Error เงียบๆ ไม่ต้องเด้ง Popup ถ้ารู้ว่ามันคือ Error ซ้ำซ้อน
                         if (error.code !== "INVALID_OPERATION") {
                             alert("Mic Error: " + error.message);
                         }
                     } finally {
-                        setIsConnecting(false); // ปลดล็อคปุ่ม
+                        setIsConnecting(false);
                     }
 
                 } else if (action === 'leave') {
@@ -233,4 +236,4 @@
         };
 
         // --- Existing Components (No Changes) ---
-        const ProfileSection = ({db, user}) => { const [profile, setProfile] = React.useState({}); const [stats, setStats] = React.useState({ news: 0, chat: 0 }); const [isEditing, setIsEditing] = React.useState(false); const [editName, setEditName] = React.useState(''); const [editAvatar, setEditAvatar] = React.useState(''); const [adminTargetEmail, setAdminTargetEmail] = React.useState(''); const [adminTargetRank, setAdminTargetRank] = React.useState(''); React.useEffect(() => { const docRef = db.collection("users").doc(user.email); docRef.get().then(doc => { if(doc.exists) { setProfile(doc.data()); setEditName(doc.data().nickname || ''); setEditAvatar(doc.data().avatar || ''); } }); db.collection("news").where("authorEmail", "==", user.email).get().then(snap => setStats(p => ({ ...p, news: snap.size }))); db.collection("chat").where("user", "==", user.email.split('@')[0]).get().then(snap => setStats(p => ({ ...p, chat: snap.size }))); }, []); const saveProfile = () => { db.collection("users").doc(user.email).set({ nickname: editName, avatar: editAvatar }, { merge: true }); setProfile({ ...profile, nickname: editName, avatar: editAvatar }); setIsEditing(false); user.updateProfile({ displayName: editName, photoURL: editAvatar }); }; const adminS
+        const ProfileSection = ({db, user}) => { const [profile, setProfile] = React.useState({}); const [stats, setStats] = React.useState({ news: 0, chat: 0 }); const [isEditing, setIsEditing] = React.useState(false); const [editName, setEditName] = React.useState(''); const [editAvatar, setEditAvatar] = React.useState(''); const [adminTargetEmail, setAdminTargetEmail] = React.useState(''); const [adminTargetRank, setAdminTargetRank] = React.useState(''); React.useEffect(() => { const docRef = db.collection("users").doc(user.email); docRef.get().then(doc => { if(doc.exists) { setProfile(doc.data()); setEditName(doc.data().nickname || ''); setEditAvatar(doc.data().avatar || ''); } }); db.collection("news").where("authorEmail", "==", user.email).get().then(snap => setStats(p => ({ ...p, news: snap.size }))); db.collection("chat").where("user", "==", user.email.split('@')[0]).get().then(snap => setStats(p => ({ ...p, chat: snap.size }))); }, []); const saveProfile = () => { db.collection("users").doc(user.email).set({ nickname: editName, avatar: editAvatar }, { merge: true }); setProfile({ ...profile, nickname: editName, avatar: editAvatar }); setIsEditing(false); user.updateProfile({ displa
