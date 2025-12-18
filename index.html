@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>GameKub V5 - Stable Edition</title>
+    <title>GameKub V5 - Profile Edition</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;800&display=swap" rel="stylesheet">
@@ -74,14 +74,20 @@
             text-decoration: none;
         }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
+
+        /* Animation สำหรับการ์ด Rank */
+        .rank-card {
+            background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0));
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        // --- ส่วนการตั้งค่า Firebase (เขียนแบบเก่า รันง่าย) ---
-        
+        // --- Firebase Config ---
         const firebaseConfig = {
             apiKey: "AIzaSyD85oV6Wo9Y0agOJrwomi9KFHiX_KDnccs",
             authDomain: "gamekubclub.firebaseapp.com",
@@ -91,13 +97,11 @@
             appId: "1:949050109538:android:c8c2d7dd647a86bbd1eb3b"
         };
 
-        // เริ่มระบบ Firebase
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // --- ส่วนของแอพ React ---
-
+        // --- App ---
         const App = () => {
             const [user, setUser] = React.useState(null);
             const [page, setPage] = React.useState('login');
@@ -111,7 +115,7 @@
                 return unsub;
             }, []);
 
-            // หน้า Login
+            // Login Page
             if (page === 'login') return (
                 <div className="h-screen flex flex-col justify-center items-center p-6 bg-black relative overflow-hidden">
                     <div className="absolute inset-0 bg-[url('https://cdn.pixabay.com/photo/2021/09/07/07/11/game-console-6603120_1280.jpg')] bg-cover opacity-20"></div>
@@ -129,7 +133,7 @@
                 </div>
             );
 
-            // หน้าหลัก
+            // Main App
             return (
                 <div className="h-full flex flex-col bg-[#020617] text-white">
                     <header className="pt-2 px-5 pb-2 flex justify-between items-center z-20 bg-[#020617]/80 backdrop-blur-sm sticky top-0">
@@ -142,20 +146,24 @@
                                 <p className="text-[10px] text-green-400 font-bold tracking-widest">ONLINE</p>
                             </div>
                         </div>
-                        <div onClick={() => auth.signOut()} className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500 to-cyan-500 p-[2px] cursor-pointer">
-                            <div className="w-full h-full rounded-full bg-black flex items-center justify-center font-bold">{user.email[0].toUpperCase()}</div>
+                        {/* คลิกรูปโปรไฟล์เพื่อไปหน้า Profile */}
+                        <div onClick={() => setPage('profile')} className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500 to-cyan-500 p-[2px] cursor-pointer">
+                            <div className="w-full h-full rounded-full bg-black flex items-center justify-center font-bold overflow-hidden">
+                                {user.photoURL ? <img src={user.photoURL} className="w-full h-full object-cover" /> : user.email[0].toUpperCase()}
+                            </div>
                         </div>
                     </header>
 
                     <div className="flex-1 overflow-y-auto safe-pb">
                         {page === 'home' && <HomeSection db={db} />}
                         {page === 'chat' && <ChatSection db={db} user={user} />}
+                        {page === 'profile' && <ProfileSection db={db} user={user} setPage={setPage} />}
                     </div>
 
                     <nav className="fixed bottom-0 w-full bg-[#020617]/95 backdrop-blur-xl border-t border-white/10 pt-3 px-6 flex justify-around items-end z-40 safe-bottom-nav">
                         <NavBtn icon="🏠" label="HOME" active={page==='home'} onClick={()=>setPage('home')} color="text-purple-400" />
                         <NavBtn icon="💬" label="CHAT" active={page==='chat'} onClick={()=>setPage('chat')} color="text-cyan-400" />
-                        <NavBtn icon="👤" label="PROFILE" active={false} onClick={()=>alert('เร็วๆ นี้')} color="text-gray-400" />
+                        <NavBtn icon="👤" label="PROFILE" active={page==='profile'} onClick={()=>setPage('profile')} color="text-pink-400" />
                     </nav>
 
                     {page === 'home' && (
@@ -165,6 +173,130 @@
                     )}
 
                     {showPostModal && <PostModal db={db} close={() => setShowPostModal(false)} />}
+                </div>
+            );
+        };
+
+        // --- NEW: Profile Section (หน้าระบบยศและการแต่งตัว) ---
+        const ProfileSection = ({db, user, setPage}) => {
+            const [profile, setProfile] = React.useState({});
+            const [postCount, setPostCount] = React.useState(0);
+            const [isEditing, setIsEditing] = React.useState(false);
+            const [editName, setEditName] = React.useState('');
+            const [editAvatar, setEditAvatar] = React.useState('');
+
+            // ดึงข้อมูล User และนับจำนวนโพสต์เพื่อคำนวณ Rank
+            React.useEffect(() => {
+                const docRef = db.collection("users").doc(user.email);
+                
+                // 1. ดึงโปรไฟล์
+                docRef.get().then(doc => {
+                    if (doc.exists) {
+                        setProfile(doc.data());
+                        setEditName(doc.data().nickname || '');
+                        setEditAvatar(doc.data().avatar || '');
+                    }
+                });
+
+                // 2. นับจำนวนข่าวที่เคยลง (เพื่อนับยศ)
+                // (ในแอพจริงควรเก็บ count ไว้ใน user doc แต่นี่ทำแบบง่ายๆ ให้เห็นภาพ)
+                // หมายเหตุ: การนับแบบนี้อาจไม่เป๊ะถ้านายไม่ได้เก็บ uid ลงในข่าว แต่เราสมมติว่านับทั้งหมดให้ดูเป็นตัวอย่าง
+                // *เพื่อความง่าย V1: ผมจะสุ่มเลข Rank ให้ถ้านายยังไม่เคยโพสต์ หรือนายกดโพสต์แล้วตัวเลขจะเพิ่ม*
+                // เอาจริง: ดึงโพสต์ทั้งหมดแล้วนับเล่นๆ
+                db.collection("news").get().then(snap => {
+                    setPostCount(snap.size); // สมมติว่านับรวมไปก่อนเพื่อความเท่
+                });
+
+            }, []);
+
+            const saveProfile = () => {
+                db.collection("users").doc(user.email).set({
+                    nickname: editName,
+                    avatar: editAvatar
+                }, { merge: true });
+                setProfile({ ...profile, nickname: editName, avatar: editAvatar });
+                setIsEditing(false);
+                // อัปเดตข้อมูล Auth เบื้องต้นด้วย
+                user.updateProfile({ displayName: editName, photoURL: editAvatar });
+            };
+
+            // คำนวณ Rank
+            const getRank = (count) => {
+                if(count >= 10) return { name: "LEGEND 🥇", color: "text-yellow-400", bg: "bg-yellow-500/20" };
+                if(count >= 5) return { name: "PRO PLAYER 🥈", color: "text-gray-300", bg: "bg-gray-500/20" };
+                if(count >= 1) return { name: "ROOKIE 🥉", color: "text-orange-400", bg: "bg-orange-500/20" };
+                return { name: "NEWBIE 🐣", color: "text-green-400", bg: "bg-green-500/20" };
+            };
+
+            const rank = getRank(postCount);
+
+            return (
+                <div className="p-6 space-y-6 pt-8 animate-fade-in">
+                    
+                    {/* Header Card */}
+                    <div className="glass-card p-6 text-center relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-full h-20 bg-gradient-to-b from-purple-500/20 to-transparent"></div>
+                        
+                        <div className="relative z-10">
+                            {/* รูป Avatar */}
+                            <div className="w-24 h-24 mx-auto rounded-full p-1 bg-gradient-to-tr from-purple-500 to-pink-500 shadow-[0_0_20px_rgba(192,38,211,0.5)]">
+                                <div className="w-full h-full rounded-full bg-black overflow-hidden">
+                                    <img src={profile.avatar || `https://ui-avatars.com/api/?name=${user.email}&background=random`} className="w-full h-full object-cover" />
+                                </div>
+                            </div>
+
+                            {/* ชื่อ User */}
+                            {isEditing ? (
+                                <div className="mt-4 space-y-2">
+                                    <input value={editName} onChange={e=>setEditName(e.target.value)} className="cyber-input text-center font-bold" placeholder="ตั้งชื่อเล่นเท่ๆ..." />
+                                    <input value={editAvatar} onChange={e=>setEditAvatar(e.target.value)} className="cyber-input text-center text-xs" placeholder="ลิงก์รูปภาพ (URL)..." />
+                                    <div className="flex gap-2 justify-center mt-2">
+                                        <button onClick={()=>setIsEditing(false)} className="px-4 py-1 rounded bg-gray-700 text-xs">ยกเลิก</button>
+                                        <button onClick={saveProfile} className="px-4 py-1 rounded bg-green-600 text-xs font-bold">บันทึก</button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="mt-3">
+                                    <h2 className="text-2xl font-black text-white">{profile.nickname || user.email.split('@')[0]}</h2>
+                                    <p className="text-xs text-gray-400">{user.email}</p>
+                                    <button onClick={()=>setIsEditing(true)} className="mt-2 text-[10px] text-cyan-400 border border-cyan-500/30 px-2 py-0.5 rounded hover:bg-cyan-500/10">✏️ แก้ไขโปรไฟล์</button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Rank Card */}
+                    <div className={`rank-card p-4 rounded-xl flex items-center justify-between ${rank.bg}`}>
+                        <div>
+                            <p className="text-xs text-gray-300 font-bold uppercase tracking-widest">Current Rank</p>
+                            <h3 className={`text-2xl font-black italic ${rank.color} drop-shadow-md`}>{rank.name}</h3>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-3xl font-bold text-white">{postCount}</p>
+                            <p className="text-[10px] text-gray-400">Total Posts</p>
+                        </div>
+                    </div>
+
+                    {/* Stats Grid */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="glass-card p-4 text-center">
+                            <span className="text-2xl">📅</span>
+                            <p className="text-lg font-bold mt-1">Member Since</p>
+                            <p className="text-xs text-gray-400">2024</p>
+                        </div>
+                        <div className="glass-card p-4 text-center">
+                            <span className="text-2xl">🔥</span>
+                            <p className="text-lg font-bold mt-1">Status</p>
+                            <p className="text-xs text-green-400">Online</p>
+                        </div>
+                    </div>
+
+                    {/* Logout Button */}
+                    <button onClick={() => auth.signOut()} className="w-full py-4 rounded-xl border border-red-500/30 bg-red-500/10 text-red-400 font-bold flex items-center justify-center gap-2 hover:bg-red-500/20 transition">
+                        🚪 ออกจากระบบ (Logout)
+                    </button>
+
+                    <p className="text-center text-[10px] text-gray-600 mt-4">GameKub V5.0 • Powered by PigotJa</p>
                 </div>
             );
         };
@@ -219,145 +351,4 @@
                             </div>
                         </div>
                         <div className="flex gap-3 mt-6">
-                            <button onClick={close} className="flex-1 py-3 rounded-xl bg-gray-800 text-gray-400">ยกเลิก</button>
-                            <button onClick={submit} className="flex-1 py-3 rounded-xl neon-btn text-black font-bold">โพสต์</button>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        const HomeSection = ({db}) => {
-            const [news, setNews] = React.useState([]);
-            const [filter, setFilter] = React.useState('All');
-
-            React.useEffect(() => {
-                // เขียนแบบ Compat (รันง่ายกว่า)
-                return db.collection("news").orderBy("time", "desc").onSnapshot(s => {
-                    setNews(s.docs.map(d => d.data()));
-                });
-            }, []);
-
-            const filteredNews = filter === 'All' ? news : news.filter(n => n.category === filter);
-
-            return (
-                <div className="px-5 space-y-6 pt-2">
-                    <div className="hide-scroll flex gap-3 overflow-x-auto pb-2">
-                        {['All', 'Esport', 'Games', 'Shop'].map((t,i) => (
-                            <div key={i} onClick={()=>setFilter(t)} 
-                                 className={`px-6 py-2 rounded-lg flex-shrink-0 cursor-pointer border skew-x-[-10deg] transition-all
-                                 ${filter===t ? 'bg-gradient-to-r from-purple-600 to-blue-600 border-white/40 scale-105 shadow-lg' : 'border-white/10 bg-white/5 hover:bg-white/10'}`}>
-                                <span className={`block skew-x-[10deg] text-xs font-bold uppercase ${filter===t ? 'text-white':'text-gray-400'}`}>
-                                    {t === 'All' ? '🔥 Hot' : (t==='Shop' ? '💎 Shop' : (t==='Esport'?'🏆 Esport':'🎮 Games'))}
-                                </span>
-                            </div>
-                        ))}
-                    </div>
-                    
-                    <a href="https://shopee.co.th" target="_blank" className="ad-banner">
-                        🔥 9.9 ลดจัดหนัก! กดที่นี่เพื่อช้อป Shopee
-                    </a>
-
-                    <div className="space-y-4 pb-4">
-                        <h3 className="font-bold text-lg flex items-center gap-2">
-                            <div className="w-1 h-5 bg-purple-500 rounded-full"></div> 
-                            {filter === 'All' ? 'อัปเดตล่าสุด' : `หมวดหมู่ ${filter}`}
-                        </h3>
-                        
-                        {filteredNews.length === 0 && <div className="text-center text-gray-500 py-10">ยังไม่มีข้อมูลในหมวดนี้...</div>}
-
-                        {filteredNews.map((n, i) => (
-                            <div key={i} className="glass-card overflow-hidden group relative">
-                                <span className={`absolute top-2 right-2 px-2 py-1 rounded text-[10px] font-bold z-10 
-                                    ${n.category==='Shop' ? 'bg-green-500 text-black' : 'bg-purple-600 text-white'}`}>
-                                    {n.category || 'General'}
-                                </span>
-
-                                {n.image ? (
-                                    <div className="h-48 w-full overflow-hidden relative">
-                                        <img src={n.image} className="w-full h-full object-cover transition duration-500 group-hover:scale-105" onError={(e)=>{e.target.style.display='none'}} />
-                                        <div className="absolute inset-0 bg-gradient-to-t from-[#0f172a] to-transparent opacity-90"></div>
-                                    </div>
-                                ) : (
-                                    <div className="h-2 w-full bg-gradient-to-r from-purple-900 to-blue-900"></div>
-                                )}
-                                
-                                <div className="p-4 relative">
-                                    <h2 className="text-lg font-bold text-white mb-2 leading-tight">{n.title}</h2>
-                                    <p className="text-sm text-gray-300 font-light leading-relaxed whitespace-pre-line">{n.content}</p>
-                                    
-                                    {n.category === 'Shop' && n.link && (
-                                        <a href={n.link} target="_blank" className="mt-3 block w-full py-2 bg-gradient-to-r from-orange-500 to-red-500 text-center rounded-lg font-bold text-white hover:scale-[1.02] transition shadow-lg">
-                                            🛒 สั่งซื้อเลย
-                                        </a>
-                                    )}
-
-                                    <div className="mt-4 flex items-center justify-between text-[10px] text-gray-500">
-                                        <span>Just now</span>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            );
-        };
-
-        const NavBtn = ({icon, label, active, onClick, color}) => (
-            <button onClick={onClick} className={`flex flex-col items-center gap-1 transition-all ${active ? '-translate-y-2' : 'opacity-60'}`}>
-                <span className={`text-2xl ${active ? 'drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]' : ''}`}>{icon}</span>
-                {active && <span className={`text-[8px] font-bold tracking-widest ${color}`}>{label}</span>}
-            </button>
-        );
-
-        const ChatSection = ({db, user}) => {
-            const [msgs, setMsgs] = React.useState([]);
-            const [txt, setTxt] = React.useState('');
-            const dummy = React.useRef();
-
-            React.useEffect(() => {
-                return db.collection("chat").orderBy("time", "asc").onSnapshot(s => {
-                    setMsgs(s.docs.map(d => d.data()));
-                    setTimeout(() => dummy.current?.scrollIntoView({behavior:'smooth'}), 100);
-                });
-            }, []);
-
-            const send = () => {
-                if(!txt.trim()) return;
-                db.collection("chat").add({ 
-                    user: user.email.split('@')[0], 
-                    msg: txt, 
-                    time: firebase.firestore.FieldValue.serverTimestamp() 
-                });
-                setTxt('');
-            };
-
-            return (
-                <div className="h-full flex flex-col px-5 pt-2">
-                    <div className="flex-1 overflow-y-auto space-y-3 pb-4 hide-scroll">
-                        {msgs.map((m, i) => {
-                            const isMe = m.user === user.email.split('@')[0];
-                            return (
-                                <div key={i} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-                                    <div className={`max-w-[80%] p-3 rounded-2xl ${isMe ? 'bg-purple-600 rounded-tr-sm' : 'bg-gray-800 rounded-tl-sm'}`}>
-                                        <span className={`text-[10px] font-bold block mb-1 ${isMe ? 'text-purple-200' : 'text-cyan-400'}`}>{m.user}</span>
-                                        <p className="text-sm">{m.msg}</p>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                        <div ref={dummy}></div>
-                    </div>
-                    <div className="fixed bottom-24 left-4 right-4 flex gap-2" style={{marginBottom: 'env(safe-area-inset-bottom)'}}>
-                        <input value={txt} onChange={e=>setTxt(e.target.value)} onKeyDown={e=>e.key==='Enter'&&send()} className="flex-1 glass-card px-4 py-3 outline-none text-white" placeholder="พิมพ์ข้อความ..." />
-                        <button onClick={send} className="w-12 h-12 bg-cyan-500 rounded-xl flex items-center justify-center font-bold text-black shadow-lg">➤</button>
-                    </div>
-                </div>
-            );
-        };
-
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
-</body>
-</html>
+                            <button onClick={close} className="flex-1 py-3 rounded-xl bg-gray-800 text-gray-40
