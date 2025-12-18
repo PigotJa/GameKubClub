@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>GameKub V9.0 Ultimate</title>
+    <title>GameKub V11.0 Millionaire</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;900&display=swap" rel="stylesheet">
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -12,25 +12,23 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    <script defer src="https://download.agora.io/sdk/release/AgoraRTC_N-4.18.2.js"></script>
+    <script src="https://download.agora.io/sdk/release/AgoraRTC_N-4.18.2.js"></script>
 
     <style>
-        :root { --primary: #c026d3; --accent: #22d3ee; }
-        body { font-family: 'Kanit', sans-serif; background-color: #020617; color: #fff; margin:0; overflow:hidden; }
-        .cyber-bg { background: radial-gradient(circle at top right, #1e1b4b, #020617); }
+        body { font-family: 'Kanit', sans-serif; background: #020617; color: #fff; margin:0; overflow:hidden; }
         .glass { background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.05); }
-        .neon-text { text-shadow: 0 0 10px rgba(34, 211, 238, 0.8); }
-        .rank-admin { background: linear-gradient(45deg, #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8); background-size: 400%; animation: rb 5s linear infinite; }
-        @keyframes rb { 0%{background-position:0% 50%} 100%{background-position:400% 50%} }
-        .xp-bar { height: 6px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; }
-        .xp-progress { height: 100%; background: linear-gradient(90deg, #22d3ee, #c026d3); transition: width 0.5s; }
+        .god-text { color: #fbbf24; text-shadow: 0 0 10px #fbbf24; font-weight: 900; }
+        .btn-premium { background: linear-gradient(90deg, #22d3ee, #c026d3); color: white; border: none; font-weight: 900; }
+        .live-indicator { width: 10px; height: 10px; background: red; border-radius: 50%; animation: blink 1s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
     </style>
 </head>
-<body class="cyber-bg">
+<body>
     <div id="root"></div>
 
     <script type="text/babel">
         const AGORA_APP_ID = "e51f6bdc1ad449ab8c08090ba53c1c9f"; 
+        const ADMIN_EMAIL = "pigot488@gmail.com";
         const firebaseConfig = {
             apiKey: "AIzaSyD85oV6Wo9Y0agOJrwomi9KFHiX_KDnccs",
             authDomain: "gamekubclub.firebaseapp.com",
@@ -43,83 +41,81 @@
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
-        const ADMIN_EMAIL = "pigot488@gmail.com";
 
         const App = () => {
             const [user, setUser] = React.useState(null);
-            const [userData, setUserData] = React.useState({ lv: 1, xp: 0 });
+            const [userData, setUserData] = React.useState(null);
             const [page, setPage] = React.useState('loading');
-            const [isRegister, setIsRegister] = React.useState(false);
 
             React.useEffect(() => {
-                return auth.onAuthStateChanged(u => {
+                return auth.onAuthStateChanged(async (u) => {
                     if (u) {
-                        db.collection("users").doc(u.uid).onSnapshot(doc => {
-                            if (doc.exists) setUserData(doc.data());
-                            else db.collection("users").doc(u.uid).set({ lv: 1, xp: 0, email: u.email });
-                        });
+                        const userRef = db.collection("users").doc(u.uid);
+                        const doc = await userRef.get();
+                        
+                        let data = doc.exists ? doc.data() : { 
+                            lv: 1, xp: 0, coin: 0, diamond: 0, streak: 0, lastCheckin: 0, isNew: true 
+                        };
+
+                        // --- ระบบ Check-in ---
+                        const today = new Date().toDateString();
+                        const last = data.lastCheckin ? new Date(data.lastCheckin).toDateString() : "";
+                        const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+                        
+                        if (today !== last) {
+                            if (last === yesterday.toDateString()) data.streak += 1;
+                            else data.streak = 1;
+                            
+                            data.coin += 0.5;
+                            data.lastCheckin = Date.now();
+                            userRef.set(data, {merge: true});
+                            alert(`🎁 เช็คอินวันที่ ${data.streak}! รับ 0.5 Coin`);
+                        }
+
+                        userRef.onSnapshot(s => setUserData(s.data()));
                         setUser(u); setPage('home');
-                    } else { setPage('auth'); }
+                    } else setPage('auth');
                 });
             }, []);
 
-            const handleAuth = async (e) => {
-                e.preventDefault();
-                const email = e.target.email.value;
-                const pass = e.target.password.value;
-                try {
-                    if (isRegister) await auth.createUserWithEmailAndPassword(email, pass);
-                    else await auth.signInWithEmailAndPassword(email, pass);
-                } catch (err) { alert("❌ " + err.message); }
-            };
-
-            if (page === 'loading') return <div className="h-screen flex items-center justify-center font-bold italic animate-bounce">GAMEKUB...</div>;
+            if (page === 'loading') return <div className="h-screen flex items-center justify-center font-black">GAMEKUB...</div>;
 
             if (page === 'auth') return (
-                <div className="h-screen flex flex-col justify-center p-8">
-                    <div className="glass p-8 rounded-[2rem] border-t border-cyan-400/30 shadow-2xl shadow-cyan-500/10">
-                        <h1 className="text-5xl font-black text-center italic tracking-tighter mb-2 neon-text">GAMEKUB</h1>
-                        <p className="text-center text-gray-500 text-xs mb-8 uppercase tracking-widest">Premium Gaming Community</p>
-                        <form onSubmit={handleAuth} className="space-y-4">
-                            <input name="email" type="email" placeholder="Email Address" className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 outline-none focus:border-cyan-400" required />
-                            <input name="password" type="password" placeholder="Password" className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 outline-none focus:border-cyan-400" required />
-                            <button className="w-full py-4 rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-500 text-black font-black shadow-lg">
-                                {isRegister ? 'JOIN COMMUNITY' : 'LOG IN'}
-                            </button>
-                        </form>
-                        <button onClick={() => setIsRegister(!isRegister)} className="w-full mt-4 text-xs text-gray-400 uppercase font-bold tracking-widest">
-                            {isRegister ? 'Already have account?' : 'Create New Account'}
-                        </button>
-                    </div>
+                <div className="h-screen flex flex-col justify-center items-center p-10 text-center">
+                    <h1 className="text-5xl font-black italic text-cyan-400 mb-10">GAMEKUB</h1>
+                    <button onClick={() => {
+                        const e = prompt("อีเมล:"); const p = prompt("รหัสผ่าน:");
+                        if(e&&p) auth.signInWithEmailAndPassword(e,p).catch(()=>auth.createUserWithEmailAndPassword(e,p));
+                    }} className="w-full py-5 btn-premium rounded-3xl shadow-2xl">ENTER METAVERSE</button>
                 </div>
             );
 
             return (
                 <div className="h-screen flex flex-col">
-                    <header className="p-5 flex justify-between items-center glass border-b border-white/10">
+                    <header className="p-4 glass flex justify-between items-center border-b border-white/10">
                         <div>
-                            <h1 className="text-2xl font-black italic tracking-tighter text-cyan-400">GAMEKUB</h1>
-                            <div className="flex items-center gap-2 mt-1">
-                                <span className="text-[9px] font-bold bg-cyan-500 text-black px-1.5 rounded">LV.{userData.lv}</span>
-                                <div className="xp-bar w-20"><div className="xp-progress" style={{width: `${userData.xp}%`}}></div></div>
+                            <h2 className="text-lg font-black italic text-cyan-400">GAMEKUB</h2>
+                            <div className="flex gap-2 text-[10px] font-bold">
+                                <span className={user.email === ADMIN_EMAIL ? "god-text" : "text-gray-400"}>
+                                    {user.email === ADMIN_EMAIL ? "RANK: GOD" : `LV.${userData?.lv}`}
+                                </span>
+                                <span className="text-yellow-400">💰 {userData?.coin.toFixed(1)}</span>
                             </div>
                         </div>
-                        <div onClick={()=>setPage('profile')} className="w-10 h-10 rounded-2xl rotate-3 bg-gradient-to-br from-purple-500 to-cyan-500 p-[2px] cursor-pointer active:scale-95 transition-all">
-                            <div className="w-full h-full rounded-[14px] bg-[#020617] flex items-center justify-center font-black">{user.email[0].toUpperCase()}</div>
-                        </div>
+                        <button onClick={()=>setPage('shop')} className="bg-white/5 px-3 py-1 rounded-full text-[10px] border border-white/10">เติมเงิน</button>
                     </header>
 
                     <main className="flex-1 overflow-y-auto p-4 pb-24">
-                        {page === 'home' && <HomeSection db={db} user={user} />}
-                        {page === 'chat' && <ChatSection db={db} user={user} lv={userData.lv} />}
-                        {page === 'party' && <PartySection db={db} user={user} />}
+                        {page === 'home' && <HomeSection userData={userData} />}
+                        {page === 'chat' && <ChatSection db={db} user={user} userData={userData} />}
+                        {page === 'shop' && <ShopSection db={db} user={user} userData={userData} />}
                         {page === 'profile' && <ProfileSection user={user} userData={userData} auth={auth} />}
                     </main>
 
-                    <nav className="fixed bottom-0 w-full glass border-t border-white/10 p-5 flex justify-around items-center">
-                        {['home', 'party', 'chat', 'profile'].map(p => (
-                            <button key={p} onClick={() => setPage(p)} className={`text-2xl transition-all ${page === p ? 'text-cyan-400 -translate-y-2' : 'text-gray-600'}`}>
-                                {p === 'home' ? '🏠' : p === 'party' ? '🎮' : p === 'chat' ? '💬' : '👤'}
+                    <nav className="fixed bottom-0 w-full glass p-5 flex justify-around">
+                        {['home', 'shop', 'chat', 'profile'].map(p => (
+                            <button key={p} onClick={() => setPage(p)} className={`text-2xl ${page === p ? 'text-cyan-400' : 'text-gray-600'}`}>
+                                {p === 'home' ? '🏠' : p === 'shop' ? '💎' : p === 'chat' ? '💬' : '👤'}
                             </button>
                         ))}
                     </nav>
@@ -127,113 +123,115 @@
             );
         };
 
-        const HomeSection = ({db}) => {
-            const [news, setNews] = React.useState([]);
-            React.useEffect(() => db.collection("news").orderBy("time", "desc").onSnapshot(s => setNews(s.docs.map(d => d.data()))), []);
-            return (
-                <div className="space-y-6">
-                    <div className="p-6 rounded-[2rem] bg-gradient-to-br from-cyan-500/20 to-purple-500/20 border border-white/10">
-                        <h2 className="text-xs font-bold text-cyan-400 mb-1 uppercase tracking-widest">🔥 กิจกรรมล่าสุด</h2>
-                        <p className="text-xl font-bold">เชิญเพื่อนเข้าแอพ รับยศพิเศษ VIP ทันที!</p>
+        const HomeSection = ({userData}) => (
+            <div className="space-y-4">
+                <div className="p-6 rounded-3xl bg-gradient-to-r from-cyan-900/50 to-purple-900/50 border border-white/10">
+                    <div className="flex justify-between items-center">
+                        <p className="text-xs font-bold opacity-60">เช็คอินต่อเนื่อง</p>
+                        <div className="live-indicator"></div>
                     </div>
-                    <div className="space-y-3">
-                        <h3 className="text-sm font-bold text-gray-500 uppercase">ข่าวประกาศ</h3>
-                        {news.map((n, i) => (
-                            <div key={i} className="glass p-4 rounded-2xl border-l-4 border-purple-500">
-                                <p className="text-sm font-medium">{n.text}</p>
-                                <span className="text-[10px] text-gray-600">{new Date(n.time).toLocaleDateString()}</span>
-                            </div>
-                        ))}
-                    </div>
+                    <h3 className="text-3xl font-black mt-1">{userData?.streak} วัน</h3>
+                    <p className="text-[10px] mt-2 text-cyan-300">รักษาสถิติเพื่อรับโบนัส Coin ทุกวัน!</p>
                 </div>
-            );
-        };
-
-        const ChatSection = ({db, user, lv}) => {
-            const [msgs, setMsgs] = React.useState([]);
-            const scrollRef = React.useRef();
-            React.useEffect(() => {
-                return db.collection("chats").orderBy("time", "asc").limitToLast(15).onSnapshot(s => {
-                    setMsgs(s.docs.map(d => d.data()));
-                    setTimeout(() => scrollRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
-                });
-            }, []);
-            const send = (e) => {
-                e.preventDefault();
-                const text = e.target.msg.value;
-                if(!text) return;
-                db.collection("chats").add({ text, user: user.email, lv: lv, time: Date.now() });
-                db.collection("users").doc(user.uid).update({ xp: firebase.firestore.FieldValue.increment(5) });
-                e.target.reset();
-            };
-            return (
-                <div className="flex flex-col h-full">
-                    <div className="flex-1 space-y-4 overflow-y-auto pr-2">
-                        {msgs.map((m, i) => (
-                            <div key={i} className={`flex ${m.user === user.email ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`max-w-[85%] p-3 rounded-2xl ${m.user === user.email ? 'bg-cyan-500 text-black rounded-tr-none' : 'bg-white/5 border border-white/5 rounded-tl-none'}`}>
-                                    <div className="flex items-center gap-1 mb-1">
-                                        <span className="text-[8px] font-black bg-black/20 px-1 rounded">LV.{m.lv}</span>
-                                        <span className="text-[8px] opacity-50 font-bold">{m.user.split('@')[0]}</span>
-                                    </div>
-                                    <p className="text-sm leading-relaxed">{m.text}</p>
-                                </div>
-                            </div>
-                        ))}
-                        <div ref={scrollRef}></div>
+                <div className="p-4 glass rounded-2xl flex items-center justify-between">
+                    <div>
+                        <p className="font-bold text-sm">ระบบไลฟ์สด (Beta)</p>
+                        <p className="text-[10px] text-gray-500 font-medium">เปิดกล้องสร้างรายได้จากของขวัญ</p>
                     </div>
-                    <form onSubmit={send} className="mt-4 flex gap-2">
-                        <input name="msg" placeholder="คุยกันเลย..." className="flex-1 p-4 bg-white/5 border border-white/10 rounded-2xl outline-none" />
-                        <button className="bg-white text-black px-6 rounded-2xl font-black">ส่ง</button>
-                    </form>
+                    <button className="bg-red-600 px-4 py-2 rounded-xl text-xs font-bold">GO LIVE</button>
                 </div>
-            );
-        };
+            </div>
+        );
 
-        const PartySection = ({db, user}) => {
-            const [rooms, setRooms] = React.useState([]);
-            React.useEffect(() => db.collection("parties").orderBy("time", "desc").onSnapshot(s => setRooms(s.docs.map(d => ({id: d.id, ...d.data()})))), []);
-            const create = () => {
-                const name = prompt("🏠 ตั้งชื่อปาร์ตี้ของคุณ:");
-                if(name) db.collection("parties").add({ roomName: name, host: user.email, time: Date.now() });
+        const ShopSection = ({db, user, userData}) => {
+            const sendTopup = (amount, bath) => {
+                const slip = prompt(`กรุณาโอนเงิน ${bath} บาท ไปที่ [เลขบัญชีลูกพี่] แล้วพิมพ์คำว่า 'โอนแล้ว'`);
+                if(slip) {
+                    db.collection("topups").add({
+                        uid: user.uid,
+                        email: user.email,
+                        amount: amount,
+                        bath: bath,
+                        status: 'pending',
+                        time: Date.now()
+                    });
+                    alert("✅ ส่งเรื่องการเติมเงินแล้ว รอแอดมินตรวจสอบครับ");
+                }
             };
+
+            const discount = Math.min(userData?.lv * 2, 20); // ลดสูงสุด 20% ตามเลเวล
+
             return (
                 <div className="space-y-4">
-                    <button onClick={create} className="w-full py-4 border-2 border-dashed border-white/10 rounded-3xl text-gray-500 font-bold hover:bg-white/5 transition-all">+ สร้างปาร์ตี้ใหม่</button>
-                    {rooms.map(r => (
-                        <div key={r.id} className="glass p-5 rounded-3xl flex justify-between items-center group active:scale-95 transition-all">
-                            <div>
-                                <h4 className="font-bold text-lg text-cyan-400 tracking-tight">{r.roomName}</h4>
-                                <p className="text-[10px] text-gray-600 font-bold uppercase tracking-widest">Host: {r.host.split('@')[0]}</p>
+                    <h2 className="text-xl font-black italic">TOP-UP CENTER</h2>
+                    <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-2xl">
+                        <p className="text-xs font-bold text-yellow-500">🔥 โปรโมชั่นเด็กใหม่: เติม 100.- รับ 500 Coin!</p>
+                    </div>
+                    <div className="grid grid-cols-1 gap-3">
+                        <button onClick={()=>sendTopup(500, 100)} className="p-5 glass rounded-3xl text-left border-l-4 border-cyan-500">
+                            <p className="font-bold">PRO: 500 COINS</p>
+                            <p className="text-xs opacity-50 text-cyan-400">ราคา 100 บาท (โปรสมาชิกใหม่)</p>
+                        </button>
+                        <button onClick={()=>sendTopup(10, 5)} className="p-5 glass rounded-3xl text-left">
+                            <p className="font-bold">10 COINS</p>
+                            <p className="text-xs opacity-50">ราคาปกติ 5 บาท (ส่วนลดยศ: -{discount}%)</p>
+                        </button>
+                    </div>
+                    {user.email === ADMIN_EMAIL && <AdminPanel db={db} />}
+                </div>
+            );
+        };
+
+        const AdminPanel = ({db}) => {
+            const [slips, setSlips] = React.useState([]);
+            React.useEffect(() => db.collection("topups").where("status","==","pending").onSnapshot(s => setSlips(s.docs.map(d=>({id:d.id, ...d.data()})))) , []);
+            const approve = async (s) => {
+                await db.collection("users").doc(s.uid).update({ coin: firebase.firestore.FieldValue.increment(s.amount) });
+                await db.collection("topups").doc(s.id).update({ status: 'success' });
+            };
+            return (
+                <div className="mt-10 p-4 border border-red-500/20 rounded-2xl bg-red-500/5">
+                    <h3 className="text-red-500 font-bold mb-4">👑 ADMIN: รายการรออนุมัติ</h3>
+                    {slips.map(s => (
+                        <div key={s.id} className="flex justify-between items-center bg-black/40 p-3 rounded-xl mb-2">
+                            <div className="text-[10px]">
+                                <p className="font-bold">{s.email}</p>
+                                <p>{s.amount} Coin ({s.bath}.-)</p>
                             </div>
-                            <button className="bg-cyan-500 text-black px-5 py-2 rounded-xl font-black text-xs shadow-lg shadow-cyan-500/20">JOIN</button>
+                            <button onClick={()=>approve(s)} className="bg-green-600 text-[10px] px-3 py-1 rounded-lg">อนุมัติ</button>
                         </div>
                     ))}
                 </div>
             );
         };
 
+        const ChatSection = ({db, user, userData}) => {
+            const [msgs, setMsgs] = React.useState([]);
+            React.useEffect(() => db.collection("chats").orderBy("time","asc").limitToLast(15).onSnapshot(s => setMsgs(s.docs.map(d=>d.data()))), []);
+            return (
+                <div className="flex flex-col h-full">
+                    <div className="flex-1 space-y-3 overflow-y-auto">
+                        {msgs.map((m, i) => (
+                            <div key={i} className={`flex flex-col ${m.user === user.email ? 'items-end' : 'items-start'}`}>
+                                <div className={`p-3 rounded-2xl text-sm ${m.user === user.email ? 'bg-cyan-600' : 'bg-white/10'}`}>{m.text}</div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
         const ProfileSection = ({user, userData, auth}) => (
-            <div className="text-center space-y-8 pt-6">
-                <div className="relative inline-block">
-                    <div className="w-32 h-32 rounded-[2.5rem] rotate-6 bg-gradient-to-tr from-purple-500 to-cyan-500 p-1">
-                        <div className="w-full h-full rounded-[2.2rem] bg-[#020617] flex items-center justify-center text-5xl font-black italic shadow-inner">
-                            {user.email[0].toUpperCase()}
-                        </div>
-                    </div>
-                    <div className="absolute -bottom-2 -right-2 bg-white text-black text-[10px] font-black px-3 py-1 rounded-full shadow-lg">LV.{userData.lv}</div>
+            <div className="text-center pt-10 space-y-6">
+                <div className="w-32 h-32 mx-auto rounded-full border-4 border-cyan-500 p-1">
+                    <div className="w-full h-full bg-gray-800 rounded-full flex items-center justify-center text-4xl font-black italic">{user.email[0].toUpperCase()}</div>
                 </div>
-                <div className="space-y-2">
-                    <h2 className="text-2xl font-black tracking-tight">{user.email}</h2>
-                    <div className={`mx-auto w-fit px-6 py-2 rounded-full font-black italic text-xs tracking-widest ${user.email === ADMIN_EMAIL ? 'rank-admin text-white' : 'bg-white/5 text-gray-400 border border-white/10'}`}>
-                        {user.email === ADMIN_EMAIL ? '🦄 GOD ADMIN' : '🎮 VERIFIED PLAYER'}
-                    </div>
-                </div>
+                <h2 className="text-2xl font-black italic">{user.email === ADMIN_EMAIL ? "👑 GOD ADMIN" : user.email.split('@')[0]}</h2>
                 <div className="grid grid-cols-2 gap-4">
-                    <div className="glass p-4 rounded-3xl"><p className="text-[10px] text-gray-500 font-bold uppercase mb-1">XP Points</p><p className="text-xl font-black">{userData.xp}</p></div>
-                    <div className="glass p-4 rounded-3xl"><p className="text-[10px] text-gray-500 font-bold uppercase mb-1">Badges</p><p className="text-xl font-black">0</p></div>
+                    <div className="glass p-4 rounded-3xl"><p className="text-[10px] text-gray-500">MY COINS</p><p className="text-xl font-black text-yellow-400">{userData?.coin.toFixed(1)}</p></div>
+                    <div className="glass p-4 rounded-3xl"><p className="text-[10px] text-gray-500">VJ DIAMONDS</p><p className="text-xl font-black text-pink-500">{userData?.diamond || 0}</p></div>
                 </div>
-                <button onClick={()=>auth.signOut()} className="w-full py-4 text-red-500 font-bold opacity-50 hover:opacity-100 transition-all text-xs tracking-widest uppercase">Terminate Session</button>
+                <button onClick={()=>auth.signOut()} className="text-red-500 text-xs font-bold opacity-50 uppercase tracking-widest">Sign Out</button>
             </div>
         );
 
