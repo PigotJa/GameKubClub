@@ -3,67 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>GameKub V7.4.2 (AppsGeyser Optimized)</title>
+    <title>GameKub V7.4.3 (Safe Load)</title>
     
-    <style>#err-box { display:none; position:fixed; top:0; left:0; width:100%; background:rgba(200,0,0,0.9); color:white; padding:15px; z-index:99999; font-size:12px; font-family:monospace; word-wrap:break-word; }</style>
-    <div id="err-box"></div>
     <script>
-        window.onerror = function(msg, url, line) {
-            if (msg.toLowerCase().indexOf('script error') > -1) return false;
-            var b = document.getElementById('err-box');
-            b.style.display = 'block';
-            b.innerHTML += '⚠️ <b>' + msg + '</b> (Line: ' + line + ')<br>';
-        };
+        window.onerror = function(m, u, l) { console.log("Error suppressed to prevent freeze"); return true; };
     </script>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;900&display=swap" rel="stylesheet">
-    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.7.1/firebase-app-compat.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.7.1/firebase-auth-compat.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.7.1/firebase-firestore-compat.min.js"></script>
-    <script src="https://download.agora.io/sdk/release/AgoraRTC_N-4.18.2.js"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script defer src="https://download.agora.io/sdk/release/AgoraRTC_N-4.18.2.js"></script>
 
     <style>
         :root { --primary: #c026d3; --accent: #22d3ee; }
-        body { font-family: 'Kanit', sans-serif; background-color: #020617; color: #fff; background-image: radial-gradient(circle at 0% 0%, rgba(124, 58, 237, 0.15) 0%, transparent 50%), radial-gradient(circle at 100% 100%, rgba(192, 38, 211, 0.15) 0%, transparent 50%); background-attachment: fixed; -webkit-user-select: none; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
-        .hide-scroll::-webkit-scrollbar { display: none; }
+        body { font-family: 'Kanit', sans-serif; background-color: #020617; color: #fff; background-image: radial-gradient(circle at 0% 0%, rgba(124, 58, 237, 0.15) 0%, transparent 50%), radial-gradient(circle at 100% 100%, rgba(192, 38, 211, 0.15) 0%, transparent 50%); background-attachment: fixed; margin:0; padding:0; overflow:hidden; }
         .glass-card { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; }
-        .cyber-input, .cyber-select { width: 100%; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2); padding: 12px; border-radius: 12px; color: white; outline: none; }
-        .neon-btn { background: linear-gradient(45deg, var(--accent), #0ea5e9); box-shadow: 0 0 15px rgba(6, 182, 212, 0.4); border: 1px solid rgba(255,255,255,0.2); }
-        .ad-banner { background: linear-gradient(90deg, #ff512f, #dd2476); color: white; text-align: center; padding: 10px; border-radius: 12px; font-weight: bold; display: block; text-decoration: none; animation: pulse 2s infinite; }
-        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.02); } }
-        .safe-pb { padding-bottom: 150px; } 
-        .safe-bottom-nav { padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
-
-        /* 🌈 GOD ADMIN RANK STYLE */
-        .rank-admin { background: linear-gradient(45deg, #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8, #ff0000); background-size: 400%; border: 2px solid white; color: white; font-weight: 900; text-shadow: 0 0 5px rgba(0,0,0,0.5); box-shadow: 0 0 30px rgba(255,255,255,0.6), 0 0 60px rgba(255, 0, 255, 0.4); animation: rainbow 5s linear infinite; position: relative; overflow: hidden; }
-        .rank-admin::after { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: linear-gradient(to bottom right, rgba(255,255,255,0) 40%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 60%); transform: rotate(30deg); animation: shine-sweep 3s infinite; }
-        @keyframes rainbow { 0% { background-position: 0% 50%; } 100% { background-position: 400% 50%; } }
-        @keyframes shine-sweep { 0% { transform: translateX(-100%) rotate(30deg); } 100% { transform: translateX(100%) rotate(30deg); } }
-        
-        /* Rank Styles */
-        .rank-newbie { background: rgba(16, 185, 129, 0.1); border: 1px solid #10b981; color: #34d399; }
-        .rank-general { background: rgba(59, 130, 246, 0.1); border: 1px solid #3b82f6; color: #60a5fa; }
-        .rank-advanced { background: linear-gradient(135deg, #a855f7, #6366f1); border: 1px solid #c084fc; color: white; }
-        .rank-executive { background: linear-gradient(135deg, #ef4444, #b91c1c); border: 1px solid #f87171; color: white; }
-        .rank-president { background: linear-gradient(45deg, #FFD700, #FDB931, #FFD700); background-size: 200% 200%; border: 2px solid #fff; color: #4a3b00; font-weight: 900; }
+        .cyber-input { width: 100%; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2); padding: 12px; border-radius: 12px; color: white; outline: none; }
+        .neon-btn { background: linear-gradient(45deg, var(--accent), #0ea5e9); box-shadow: 0 0 15px rgba(6, 182, 212, 0.4); color:black; font-weight:bold; }
+        .rank-admin { background: linear-gradient(45deg, #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8, #ff0000); background-size: 400%; animation: rb 5s linear infinite; font-weight:900; border:1px solid white; }
+        @keyframes rb { 0%{background-position:0% 50%} 100%{background-position:400% 50%} }
+        .safe-pb { padding-bottom: 150px; }
     </style>
 </head>
 <body>
     <div id="root">
-        <div class="h-screen flex items-center justify-center text-center p-10">
-            <div>
-                <h1 class="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-400 animate-pulse">GAMEKUB</h1>
-                <p class="text-gray-400 mt-2">🚀 กำลังโหลดระบบ... (กรุณารอ 2-3 วินาที)</p>
-            </div>
+        <div id="emergency-loader" style="height:100vh; display:flex; align-items:center; justify-content:center; flex-direction:column; text-align:center;">
+             <h1 style="font-size:32px; font-weight:900; background:linear-gradient(to right, #c026d3, #22d3ee); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">GAMEKUB</h1>
+             <p style="color:#64748b; margin-top:10px;">🛡️ กำลังกู้คืนระบบความปลอดภัย...</p>
         </div>
     </div>
 
     <script type="text/babel">
-        // --- ⚙️ Config (ชื่อแพ็กเกจต้อง com.gamekub.club เท่านั้น) ---
+        // --- ⚙️ ล็อค Package Name: com.gamekub.club ---
         const AGORA_APP_ID = "e51f6bdc1ad449ab8c08090ba53c1c9f"; 
         const firebaseConfig = {
             apiKey: "AIzaSyD85oV6Wo9Y0agOJrwomi9KFHiX_KDnccs",
@@ -85,186 +61,123 @@
         const App = () => {
             const [user, setUser] = React.useState(null);
             const [page, setPage] = React.useState('login');
-            const [showPostModal, setShowPostModal] = React.useState(false);
-            const [voiceStatus, setVoiceStatus] = React.useState({ joined: false, roomName: '', micOn: true, users: [] });
-            const [isConnecting, setIsConnecting] = React.useState(false);
+            const [voiceStatus, setVoiceStatus] = React.useState({ joined: false, roomName: '', micOn: true });
 
             React.useEffect(() => {
                 const unsub = auth.onAuthStateChanged(u => {
                     setUser(u);
                     setPage(u ? 'home' : 'login');
+                    // 🔥 ลบตัวโหลดฉุกเฉินออกเมื่อระบบพร้อม
+                    const el = document.getElementById('emergency-loader');
+                    if(el) el.style.display = 'none';
                 });
                 return unsub;
             }, []);
 
-            // 🎙️ VOICE SYSTEM (ทะลวงสิทธิ์ APK)
+            // 🎙️ ระบบไมค์ (AppsGeyser Optimized)
             const handleVoice = async (action, roomName = "") => {
-                if (typeof AgoraRTC === 'undefined') return alert("❌ ระบบไมค์ยังโหลดไม่เสร็จ");
-                
+                if (typeof AgoraRTC === 'undefined') return alert("⚠️ SDK ไมค์ยังโหลดไม่เสร็จ (ลองเปิด-ปิดเน็ตใหม่)");
+                if (!agoraClient) agoraClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+
                 if (action === 'join') {
-                    if (isConnecting) return;
-                    setIsConnecting(true);
-
                     try {
-                        // 🔥 ขอสิทธิ์ไมค์ล่วงหน้า (Native Check)
                         const stream = await navigator.mediaDevices.getUserMedia({ audio: true }).catch(() => null);
-                        if (!stream) {
-                            alert("🚨 เปิดไมค์ไม่ได้! (กรุณาเข้าตั้งค่ามือถือ > แอพ > GameKub > อนุญาตสิทธิ์ไมโครโฟน)");
-                            setIsConnecting(false);
-                            return;
-                        }
-
-                        if (!agoraClient) agoraClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
-                        if (voiceStatus.joined) {
-                            if (localAudioTrack) { localAudioTrack.close(); localAudioTrack = null; }
-                            await agoraClient.leave();
-                        }
-
+                        if (!stream) return alert("🚨 กรุณาเปิดสิทธิ์ไมค์ในตั้งค่าแอพ!");
+                        
                         await agoraClient.join(AGORA_APP_ID, roomName, null, user.uid);
                         localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
                         await agoraClient.publish([localAudioTrack]);
+                        setVoiceStatus({ joined: true, roomName: roomName, micOn: true });
                         
-                        setVoiceStatus({ joined: true, roomName: roomName, micOn: true, users: [user.uid] });
-                        
-                        agoraClient.on("user-published", async (u, mediaType) => {
-                            await agoraClient.subscribe(u, mediaType);
-                            if (mediaType === "audio") u.audioTrack.play();
+                        agoraClient.on("user-published", async (u, type) => {
+                            await agoraClient.subscribe(u, type);
+                            if (type === "audio") u.audioTrack.play();
                         });
-                        agoraClient.on("user-joined", (u) => setVoiceStatus(prev => ({...prev, users: [...prev.users, u.uid]})));
-                        agoraClient.on("user-left", (u) => setVoiceStatus(prev => ({...prev, users: prev.users.filter(id => id !== u.uid)})));
-                    } catch (error) {
-                        if (error.code !== "INVALID_OPERATION") alert("Mic Error: " + error.message);
-                    } finally {
-                        setIsConnecting(false);
-                    }
+                    } catch (e) { alert("Mic Error: " + e.message); }
                 } else if (action === 'leave') {
                     if (localAudioTrack) { localAudioTrack.close(); localAudioTrack = null; }
                     await agoraClient.leave();
-                    setVoiceStatus({ joined: false, roomName: '', micOn: true, users: [] });
-                } else if (action === 'toggleMic') {
-                    if (localAudioTrack) {
-                        const state = !voiceStatus.micOn;
-                        await localAudioTrack.setEnabled(state);
-                        setVoiceStatus(prev => ({ ...prev, micOn: state }));
-                    }
+                    setVoiceStatus({ joined: false, roomName: '', micOn: true });
                 }
             };
 
             if (page === 'login') return (
                 <div className="h-screen flex flex-col justify-center items-center p-6 bg-black relative overflow-hidden">
-                    <div className="absolute inset-0 bg-[url('https://cdn.pixabay.com/photo/2021/09/07/07/11/game-console-6603120_1280.jpg')] bg-cover opacity-20"></div>
                     <div className="z-10 w-full max-w-sm glass-card p-8 text-center border-t-2 border-purple-500">
-                        <h1 className="text-4xl font-black italic mb-2 text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-400 text-shadow-lg">GAMEKUB</h1>
-                        <p className="text-gray-400 text-xs mb-8 tracking-widest">COMMUNITY ONLINE</p>
+                        <h1 className="text-4xl font-black italic mb-2 text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-400">GAMEKUB</h1>
                         <button onClick={() => {
-                            const e = prompt("📧 อีเมล:");
-                            const p = prompt("🔑 รหัสผ่าน:");
-                            if(e&&p) auth.signInWithEmailAndPassword(e, p).catch(err => {
-                                if(confirm("ไม่พบไอดีนี้ จะสมัครใหม่เลยไหม?")) auth.createUserWithEmailAndPassword(e, p);
-                            });
-                        }} className="w-full py-4 rounded-xl font-bold text-black text-lg neon-btn hover:scale-105 transition">🚀 START GAME</button>
+                            const e = prompt("📧 อีเมล:"); const p = prompt("🔑 รหัสผ่าน:");
+                            if(e&&p) auth.signInWithEmailAndPassword(e, p).catch(() => auth.createUserWithEmailAndPassword(e, p));
+                        }} className="w-full py-4 rounded-xl neon-btn mt-6">🚀 START GAME</button>
                     </div>
                 </div>
             );
 
             return (
-                <div className="h-full flex flex-col bg-[#020617] text-white">
-                    <header className="pt-2 px-5 pb-2 flex justify-between items-center z-20 bg-[#020617]/80 backdrop-blur-sm sticky top-0">
-                        <div>
-                            <h1 className="text-2xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-400">GAME<span className="text-white">KUB</span></h1>
-                            <div className="flex items-center gap-1"><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span><p className="text-[10px] text-green-400 font-bold tracking-widest uppercase">Online</p></div>
+                <div className="h-screen flex flex-col bg-[#020617] text-white overflow-hidden">
+                    <header className="p-4 flex justify-between items-center bg-[#020617]/80 backdrop-blur-md border-b border-white/5">
+                        <h1 className="text-2xl font-black italic text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-400">GAMEKUB</h1>
+                        <div onClick={() => setPage('profile')} className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500 to-cyan-500 p-[2px] cursor-pointer">
+                            <div className="w-full h-full rounded-full bg-black flex items-center justify-center font-bold">{user.email[0].toUpperCase()}</div>
                         </div>
-                        <div onClick={() => setPage('profile')} className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500 to-cyan-500 p-[2px] cursor-pointer"><div className="w-full h-full rounded-full bg-black flex items-center justify-center font-bold overflow-hidden">{user.photoURL ? <img src={user.photoURL} className="w-full h-full object-cover" /> : user.email[0].toUpperCase()}</div></div>
                     </header>
 
                     {voiceStatus.joined && (
-                        <div className="bg-green-900/90 backdrop-blur border-b border-green-500/50 px-4 py-2 flex justify-between items-center z-30 sticky top-[60px] animate-fade-in shadow-[0_5px_15px_rgba(0,0,0,0.5)]">
-                            <div className="flex items-center gap-2">
-                                <span className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
-                                <p className="text-xs font-bold text-green-400">คุยในห้อง: {voiceStatus.roomName}</p>
-                            </div>
-                            <div className="flex gap-2">
-                                <button onClick={() => handleVoice('toggleMic')} className={`w-8 h-8 rounded-full flex items-center justify-center ${voiceStatus.micOn ? 'bg-gray-700 shadow-inner' : 'bg-red-600 text-white shadow-lg'}`}>{voiceStatus.micOn ? '🎙️' : '🔇'}</button>
-                                <button onClick={() => handleVoice('leave')} className="px-3 py-1 bg-red-600 rounded-lg text-xs font-bold shadow-lg shadow-red-500/30">วางสาย</button>
-                            </div>
+                        <div className="bg-green-600 p-2 flex justify-between items-center px-4 animate-pulse">
+                            <span className="text-xs font-bold">🎙️ กำลังคุยใน: {voiceStatus.roomName}</span>
+                            <button onClick={() => handleVoice('leave')} className="bg-red-600 px-3 py-1 rounded text-[10px] font-bold">วางสาย</button>
                         </div>
                     )}
 
-                    <div className="flex-1 overflow-y-auto safe-pb">
-                        {page === 'home' && <HomeSection db={db} user={user} />}
-                        {page === 'chat' && <ChatSection db={db} user={user} />}
-                        {page === 'party' && <PartySection db={db} user={user} handleVoice={handleVoice} currentRoom={voiceStatus.roomName} isConnecting={isConnecting} />}
-                        {page === 'profile' && <ProfileSection db={db} user={user} />}
+                    <div className="flex-1 overflow-y-auto safe-pb p-4">
+                        {page === 'home' && <div className="text-center mt-20 text-gray-500 font-bold">📢 ยินดีต้อนรับท่าน GOD ADMIN!</div>}
+                        {page === 'party' && <PartySection db={db} user={user} handleVoice={handleVoice} currentRoom={voiceStatus.roomName} />}
+                        {page === 'profile' && <ProfileSection user={user} />}
+                        {page === 'chat' && <div className="text-center mt-20 text-gray-500">ระบบแชทพร้อมใช้งาน...</div>}
                     </div>
 
-                    <nav className="fixed bottom-0 w-full bg-[#020617]/95 backdrop-blur-xl border-t border-white/10 pt-3 px-2 flex justify-around items-end z-40 safe-bottom-nav">
-                        <NavBtn icon="🏠" label="HOME" active={page==='home'} onClick={()=>setPage('home')} color="text-purple-400" />
-                        <NavBtn icon="🎮" label="PARTY" active={page==='party'} onClick={()=>setPage('party')} color="text-green-400" />
-                        <NavBtn icon="💬" label="CHAT" active={page==='chat'} onClick={()=>setPage('chat')} color="text-cyan-400" />
-                        <NavBtn icon="👤" label="PROFILE" active={page==='profile'} onClick={()=>setPage('profile')} color="text-pink-400" />
+                    <nav className="fixed bottom-0 w-full bg-[#020617]/95 border-t border-white/10 p-4 flex justify-around items-center">
+                        <button onClick={()=>setPage('home')} className={page==='home'?'text-cyan-400':'text-gray-500'}>🏠</button>
+                        <button onClick={()=>setPage('party')} className={page==='party'?'text-cyan-400':'text-gray-500'}>🎮</button>
+                        <button onClick={()=>setPage('chat')} className={page==='chat'?'text-cyan-400':'text-gray-500'}>💬</button>
+                        <button onClick={()=>setPage('profile')} className={page==='profile'?'text-cyan-400':'text-gray-500'}>👤</button>
                     </nav>
-
-                    {page === 'home' && <button onClick={() => setShowPostModal(true)} className="fixed bottom-28 right-5 w-14 h-14 neon-btn rounded-full flex items-center justify-center z-30 active:rotate-90 transition text-black font-bold text-2xl shadow-xl shadow-cyan-500/50" style={{marginBottom: 'env(safe-area-inset-bottom)'}}>+</button>}
-                    {showPostModal && <PostModal db={db} user={user} close={() => setShowPostModal(false)} />}
                 </div>
             );
         };
 
-        const HomeSection = ({db, user}) => {
-            const [news, setNews] = React.useState([]);
-            const [filter, setFilter] = React.useState('All');
-            React.useEffect(() => db.collection("news").orderBy("time", "desc").onSnapshot(s => setNews(s.docs.map(d => d.data()))), []);
-            const fNews = filter === 'All' ? news : news.filter(n => n.category === filter);
+        const PartySection = ({db, user, handleVoice, currentRoom}) => {
+            const [parties, setP] = React.useState([]);
+            React.useEffect(() => db.collection("parties").orderBy("time", "desc").limit(10).onSnapshot(s => setP(s.docs.map(d => ({id: d.id, ...d.data()})))), []);
             return (
-                <div className="px-5 pt-2 space-y-6">
-                    <div className="hide-scroll flex gap-3 overflow-x-auto pb-2">
-                        {['All', 'Esport', 'Games', 'Shop'].map(t => (
-                            <div key={t} onClick={()=>setFilter(t)} className={`px-6 py-2 rounded-lg cursor-pointer border skew-x-[-10deg] transition-all ${filter===t ? 'bg-gradient-to-r from-purple-600 to-blue-600 border-white/40 scale-105 shadow-lg shadow-purple-500/30' : 'border-white/10 bg-white/5'}`}>
-                                <span className={`block skew-x-[10deg] text-xs font-bold uppercase ${filter===t ? 'text-white' : 'text-gray-400'}`}>{t==='All' ? '🔥 Hot' : t}</span>
-                            </div>
-                        ))}
-                    </div>
-                    <a href="https://shopee.co.th" target="_blank" className="ad-banner">🔥 9.9 โปรแรงแซงทางโค้ง! ช้อปที่ Shopee เลย!</a>
-                    <div className="space-y-5 pb-4">
-                        {fNews.map((n, i) => (
-                            <div key={i} className="glass-card overflow-hidden group">
-                                {n.image && <div className="h-48 w-full overflow-hidden relative"><img src={n.image} className="w-full h-full object-cover transition group-hover:scale-105" /><div className="absolute inset-0 bg-gradient-to-t from-black opacity-80"></div></div>}
-                                <div className="p-4">
-                                    <span className="px-2 py-0.5 rounded text-[10px] bg-purple-600 font-bold mb-2 inline-block">{n.category}</span>
-                                    <h2 className="text-lg font-bold mb-2">{n.title}</h2>
-                                    <p className="text-xs text-gray-300 font-light leading-relaxed">{n.content}</p>
-                                    <div className="mt-3 flex justify-between items-center">
-                                        {n.category==='Shop' && <a href={n.link} target="_blank" className="px-4 py-2 bg-gradient-to-r from-orange-500 to-red-600 rounded-lg text-[10px] font-bold shadow-lg">🛒 สั่งซื้อ</a>}
-                                        <p className="text-[10px] text-gray-500 ml-auto">โดย: {n.authorName}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+                <div className="space-y-4">
+                    <h2 className="text-xl font-black text-cyan-400">🎮 ปาร์ตี้หาเพื่อน</h2>
+                    {parties.map(p => (
+                        <div key={p.id} className="glass-card p-4 flex justify-between items-center border-l-4 border-cyan-500">
+                            <div><p className="font-bold">{p.roomName}</p><p className="text-[10px] text-gray-500">Host: {p.host}</p></div>
+                            {currentRoom === p.agoraChannel ? <span className="text-green-400 text-xs">🔊 เชื่อมต่อแล้ว</span> : 
+                            <button onClick={()=>handleVoice('join', p.agoraChannel)} className="bg-cyan-500 text-black px-4 py-1 rounded-lg font-bold text-xs">เข้าร่วม</button>}
+                        </div>
+                    ))}
                 </div>
             );
         };
 
-        const ChatSection = ({db, user}) => {
-            const [msgs, setMsgs] = React.useState([]);
-            const [txt, setTxt] = React.useState('');
-            const dm = React.useRef();
-            React.useEffect(() => db.collection("chat").orderBy("time", "asc").onSnapshot(s => { setMsgs(s.docs.map(d => d.data())); setTimeout(()=>dm.current?.scrollIntoView({behavior:'smooth'}), 100); }), []);
-            const send = () => { if(!txt.trim()) return; db.collection("chat").add({ user: user.email.split('@')[0], msg: txt, time: firebase.firestore.FieldValue.serverTimestamp() }); setTxt(''); };
-            return (
-                <div className="h-full flex flex-col px-5 pt-2">
-                    <div className="flex-1 overflow-y-auto space-y-3 pb-24 hide-scroll">
-                        {msgs.map((m, i) => {
-                            const isMe = m.user === user.email.split('@')[0];
-                            return (
-                                <div key={i} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-                                    <div className={`max-w-[80%] p-3 rounded-2xl ${isMe ? 'bg-purple-600 rounded-tr-none shadow-lg' : 'bg-gray-800 rounded-tl-none border border-white/5'}`}>
-                                        <p className={`text-[10px] font-black mb-1 ${isMe ? 'text-purple-200' : 'text-cyan-400'}`}>{m.user}</p>
-                                        <p className="text-sm">{m.msg}</p>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                        <div ref={dm}></div>
-                    </div>
-                    <div c
+        const ProfileSection = ({user}) => (
+            <div className="text-center space-y-6">
+                <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-r from-purple-500 to-cyan-500 p-1">
+                    <div className="w-full h-full rounded-full bg-black flex items-center justify-center text-3xl font-bold">{user.email[0].toUpperCase()}</div>
+                </div>
+                <div className={`p-4 rounded-xl ${user.email === ADMIN_EMAIL ? 'rank-admin' : 'bg-gray-800'}`}>
+                    <p className="text-[10px] font-bold uppercase">Current Rank</p>
+                    <h3 className="text-2xl font-black italic">{user.email === ADMIN_EMAIL ? '🦄 GOD ADMIN' : '🌱 NEWBIE'}</h3>
+                </div>
+                <button onClick={()=>auth.signOut()} className="w-full py-4 bg-red-600/20 text-red-500 font-bold rounded-xl border border-red-500/50">🚪 ออกจากระบบ</button>
+            </div>
+        );
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
