@@ -3,32 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>GameKub V7.3.5 (Force Mic)</title>
+    <title>GameKub V7.4 (Resurrection)</title>
     
-    <style>#err-box { display:none; position:fixed; top:0; left:0; width:100%; background:rgba(200,0,0,0.9); color:white; padding:10px; z-index:9999; font-size:10px; font-family:monospace; }</style>
+    <style>#err-box { display:none; position:fixed; top:0; left:0; width:100%; background:rgba(200,0,0,0.9); color:white; padding:15px; z-index:99999; font-size:12px; font-family:monospace; word-wrap:break-word; }</style>
     <div id="err-box"></div>
     <script>
         window.onerror = function(msg, url, line) {
-            if (msg.toLowerCase().indexOf('script error') > -1) return false;
             var b = document.getElementById('err-box');
             b.style.display = 'block';
-            b.innerHTML += '⚠️ <b>' + msg + '</b><br>';
-            return false;
+            b.innerHTML += '⚠️ <b>' + msg + '</b> (Line: ' + line + ')<br>';
         };
     </script>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;900&display=swap" rel="stylesheet">
     
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
 
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.7.1/firebase-app-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.7.1/firebase-auth-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.7.1/firebase-firestore-compat.min.js"></script>
 
-    <script crossorigin src="https://unpkg.com/agora-rtc-sdk-ng@4.18.2/AgoraRTC_N-production.js"></script>
+    <script src="https://download.agora.io/sdk/release/AgoraRTC_N-4.18.2.js"></script>
 
     <style>
         :root { --primary: #c026d3; --accent: #22d3ee; }
@@ -54,9 +52,16 @@
     </style>
 </head>
 <body>
-    <div id="root"></div>
+    <div id="root" class="h-screen flex items-center justify-center text-center p-10">
+        <div>
+            <h1 class="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-400 animate-pulse">GAMEKUB</h1>
+            <p class="text-gray-400 mt-2">🚀 กำลังเชื่อมต่อฐานข้อมูล...</p>
+            <p class="text-xs text-red-400 mt-4">(ถ้าค้างหน้านี้เกิน 10 วิ แสดงว่าเน็ตบล็อกไฟล์ระบบ)</p>
+        </div>
+    </div>
 
     <script type="text/babel">
+        // --- Config ---
         const AGORA_APP_ID = "e51f6bdc1ad449ab8c08090ba53c1c9f"; 
         
         const firebaseConfig = {
@@ -68,11 +73,12 @@
             appId: "1:949050109538:android:c8c2d7dd647a86bbd1eb3b"
         };
 
-        try { firebase.initializeApp(firebaseConfig); } catch(e) {}
+        try { firebase.initializeApp(firebaseConfig); } catch(e) { console.error("Firebase Error:", e); }
         const auth = firebase.auth();
         const db = firebase.firestore();
         const ADMIN_EMAIL = "pigot488@gmail.com";
 
+        // Global Client Variables
         let agoraClient = null;
         let localAudioTrack = null;
 
@@ -91,9 +97,13 @@
                 return unsub;
             }, []);
 
-            // ⚡ ฟังก์ชันขอไมค์แบบใหม่ (Force Request)
+            // --- Voice System (Improved Stability) ---
             const handleVoice = async (action, roomName = "") => {
-                if (typeof AgoraRTC === 'undefined') return alert("⚠️ ระบบไมค์ยังโหลดไม่เสร็จ (เน็ตช้า)");
+                // 1. เช็คว่าโหลด SDK ผ่านไหม
+                if (typeof AgoraRTC === 'undefined') {
+                    return alert("❌ ระบบไมค์โหลดไม่สำเร็จ (Netmod อาจจะบล็อก Agora)\nลองปิด-เปิดเน็ต หรือเปลี่ยน VPN แล้วเข้าใหม่ครับ");
+                }
+
                 if (!agoraClient) agoraClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
 
                 if (action === 'join') {
@@ -103,21 +113,22 @@
                     setIsConnecting(true);
 
                     try {
+                        // ออกจากห้องเดิมก่อน (ถ้ามี)
                         if (voiceStatus.joined) {
                             if (localAudioTrack) { localAudioTrack.close(); localAudioTrack = null; }
                             await agoraClient.leave();
                         }
 
-                        // 🔥 จุดเปลี่ยน: ลองขอไมค์ก่อนเข้าห้องเลย
+                        // ขอไมค์
                         try {
                             localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
                         } catch (err) {
-                            // ถ้าขอไมค์ไม่ได้ ให้เตือนให้ไปตั้งค่า
-                            alert("❌ เปิดไมค์ไม่ได้! กรุณาไปที่ การตั้งค่า > แอพ > GameKub > อนุญาตสิทธิ์ไมโครโฟน");
+                            alert("❌ เปิดไมค์ไม่ได้! (กรุณาเช็คสิทธิ์ในตั้งค่า > แอพ > อนุญาตไมโครโฟน)");
                             setIsConnecting(false);
                             return;
                         }
 
+                        // เข้าห้อง
                         await agoraClient.join(AGORA_APP_ID, roomName, null, user.uid);
                         await agoraClient.publish([localAudioTrack]);
                         
@@ -151,6 +162,7 @@
                 }
             };
 
+            // Login Page
             if (page === 'login') return (
                 <div className="h-screen flex flex-col justify-center items-center p-6 bg-black relative overflow-hidden">
                     <div className="absolute inset-0 bg-[url('https://cdn.pixabay.com/photo/2021/09/07/07/11/game-console-6603120_1280.jpg')] bg-cover opacity-20"></div>
@@ -168,6 +180,7 @@
                 </div>
             );
 
+            // Main App
             return (
                 <div className="h-full flex flex-col bg-[#020617] text-white">
                     <header className="pt-2 px-5 pb-2 flex justify-between items-center z-20 bg-[#020617]/80 backdrop-blur-sm sticky top-0">
@@ -236,4 +249,14 @@
         };
 
         // --- Existing Components (No Changes) ---
-        const ProfileSection = ({db, user}) => { const [profile, setProfile] = React.useState({}); const [stats, setStats] = React.useState({ news: 0, chat: 0 }); const [isEditing, setIsEditing] = React.useState(false); const [editName, setEditName] = React.useState(''); const [editAvatar, setEditAvatar] = React.useState(''); const [adminTargetEmail, setAdminTargetEmail] = React.useState(''); const [adminTargetRank, setAdminTargetRank] = React.useState(''); React.useEffect(() => { const docRef = db.collection("users").doc(user.email); docRef.get().then(doc => { if(doc.exists) { setProfile(doc.data()); setEditName(doc.data().nickname || ''); setEditAvatar(doc.data().avatar || ''); } }); db.collection("news").where("authorEmail", "==", user.email).get().then(snap => setStats(p => ({ ...p, news: snap.size }))); db.collection("chat").where("user", "==", user.email.split('@')[0]).get().then(snap => setStats(p => ({ ...p, chat: snap.size }))); }, []); const saveProfile = () => { db.collection("users").doc(user.email).set({ nickname: editName, avatar: editAvatar }, { merge: true }); setProfile({ ...profile, nickname: editName, avatar: editAvatar }); setIsEditing(false); user.updateProfile({ displa
+        const ProfileSection = ({db, user}) => { const [profile, setProfile] = React.useState({}); const [stats, setStats] = React.useState({ news: 0, chat: 0 }); const [isEditing, setIsEditing] = React.useState(false); const [editName, setEditName] = React.useState(''); const [editAvatar, setEditAvatar] = React.useState(''); const [adminTargetEmail, setAdminTargetEmail] = React.useState(''); const [adminTargetRank, setAdminTargetRank] = React.useState(''); React.useEffect(() => { const docRef = db.collection("users").doc(user.email); docRef.get().then(doc => { if(doc.exists) { setProfile(doc.data()); setEditName(doc.data().nickname || ''); setEditAvatar(doc.data().avatar || ''); } }); db.collection("news").where("authorEmail", "==", user.email).get().then(snap => setStats(p => ({ ...p, news: snap.size }))); db.collection("chat").where("user", "==", user.email.split('@')[0]).get().then(snap => setStats(p => ({ ...p, chat: snap.size }))); }, []); const saveProfile = () => { db.collection("users").doc(user.email).set({ nickname: editName, avatar: editAvatar }, { merge: true }); setProfile({ ...profile, nickname: editName, avatar: editAvatar }); setIsEditing(false); user.updateProfile({ displayName: editName, photoURL: editAvatar }); }; const adminSetRank = () => { if(!adminTargetEmail || !adminTargetRank) return alert("ใส่ข้อมูลให้ครบ!"); db.collection("users").doc(adminTargetEmail).set({ customRank: adminTargetRank }, { merge: true }).then(() => alert("✅ เรียบร้อย!")); }; const calculateRank = () => { if (user.email === ADMIN_EMAIL) return { name: "🦄 GOD ADMIN", style: "rank-admin" }; if (profile.customRank) return { name: `⭐ ${profile.customRank}`, style: "rank-legend" }; const xp = (stats.news * 10) + stats.chat; if (xp >= 500) return { name: "👑 PRESIDENT", style: "rank-president" }; if (xp >= 200) return { name: "👹 EXECUTIVE", style: "rank-executive" }; if (xp >= 100) return { name: "🔮 ADVANCED", style: "rank-advanced" }; if (xp >= 50) return { name: "🔵 GENERAL", style: "rank-general" }; return { name: "🌱 NEWBIE", style: "rank-newbie" }; }; const rank = calculateRank(); const xp = (stats.news * 10) + stats.chat; return (<div className="p-6 space-y-6 pt-8 animate-fade-in"><div className="glass-card p-6 text-center relative overflow-hidden"><div className="absolute top-0 left-0 w-full h-20 bg-gradient-to-b from-purple-500/20 to-transparent"></div><div className="relative z-10"><div className="w-24 h-24 mx-auto rounded-full p-1 bg-gradient-to-tr from-purple-500 to-pink-500 shadow-[0_0_20px_rgba(192,38,211,0.5)]"><div className="w-full h-full rounded-full bg-black overflow-hidden"><img src={profile.avatar || `https://ui-avatars.com/api/?name=${user.email}&background=random`} className="w-full h-full object-cover" /></div></div>{isEditing ? ( <div className="mt-4 space-y-2"><input value={editName} onChange={e=>setEditName(e.target.value)} className="cyber-input text-center font-bold" placeholder="ชื่อเล่น..." /><input value={editAvatar} onChange={e=>setEditAvatar(e.target.value)} className="cyber-input text-center text-xs" placeholder="ลิงก์รูปภาพ..." /><div className="flex gap-2 justify-center mt-2"><button onClick={()=>setIsEditing(false)} className="px-4 py-1 rounded bg-gray-700 text-xs">ยกเลิก</button><button onClick={saveProfile} className="px-4 py-1 rounded bg-green-600 text-xs font-bold">บันทึก</button></div></div> ) : ( <div className="mt-3"><h2 className="text-2xl font-black text-white">{profile.nickname || user.email.split('@')[0]}</h2><p className="text-xs text-gray-400">{user.email}</p><button onClick={()=>setIsEditing(true)} className="mt-2 text-[10px] text-cyan-400 border border-cyan-500/30 px-2 py-0.5 rounded hover:bg-cyan-500/10">✏️ แก้ไขโปรไฟล์</button></div> )}</div></div><div className={`p-4 rounded-xl flex items-center justify-between transition-all duration-500 ${rank.style}`}><div><p className="text-[10px] font-bold uppercase tracking-widest opacity-80">Current Rank</p><h3 className="text-2xl font-black italic drop-shadow-md">{rank.name}</h3></div><div className="text-right"><p className="text-3xl font-bold">{xp}</p><p className="text-[10px] opacity-80">Total XP</p></div></div><div className="grid grid-cols-2 gap-4"><div className="glass-card p-3 text-center"><span className="text-xl">📢</span><p className="text-lg font-bold mt-1">{stats.news}</p><p className="text-[10px] text-gray-400">News Posted</p></div><div className="glass-card p-3 text-center"><span className="text-xl">💬</span><p className="text-lg font-bold mt-1">{stats.chat}</p><p className="text-[10px] text-gray-400">Chat Msgs</p></div></div>{user.email === ADMIN_EMAIL && (<div className="glass-card p-4 border border-red-500/50 bg-red-900/10"><h3 className="text-red-400 font-bold mb-3 flex items-center gap-2">🛠️ ADMIN ZONE <span className="text-[10px] bg-red-500 text-white px-2 rounded">God Mode</span></h3><div className="space-y-2"><input value={adminTargetEmail} onChange={e=>setAdminTargetEmail(e.target.value)} className="cyber-input text-xs" placeholder="อีเมลผู้ใช้..." /><input value={adminTargetRank} onChange={e=>setAdminTargetRank(e.target.value)} className="cyber-input text-xs" placeholder="ฉายาใหม่..." /><button onClick={adminSetRank} className="w-full py-2 bg-red-600 rounded text-xs font-bold hover:bg-red-500">บันทึกยศใหม่</button></div></div>)}<button onClick={() => auth.signOut()} className="w-full py-4 rounded-xl border border-red-500/30 bg-red-500/10 text-red-400 font-bold flex items-center justify-center gap-2 hover:bg-red-500/20 transition">🚪 ออกจากระบบ</button></div>); };
+        const PostModal = ({db, user, close}) => { const [title, setTitle] = React.useState(''); const [img, setImg] = React.useState(''); const [content, setContent] = React.useState(''); const [category, setCategory] = React.useState('General'); const [link, setLink] = React.useState(''); const submit = () => { if(!title || !content) return alert("กรุณาใส่หัวข้อและเนื้อหาครับ!"); db.collection("news").add({ title, image: img, content, category, link, authorEmail: user.email, authorName: user.displayName || user.email.split('@')[0], time: firebase.firestore.FieldValue.serverTimestamp() }); close(); }; return (<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 animate-fade-in" style={{zIndex: 100}}><div className="glass-card w-full max-w-md p-6 border border-purple-500/50 shadow-2xl max-h-[90vh] overflow-y-auto"><h3 className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-400 mb-4">📢 ลงประกาศ</h3><div className="space-y-3"><select value={category} onChange={e=>setCategory(e.target.value)} className="cyber-select text-white font-bold"><option value="General">📰 ข่าวทั่วไป</option><option value="Esport">🏆 E-Sport</option><option value="Games">🎮 รีวิวเกม</option><option value="Shop">🛍️ ร้านค้า</option></select><input value={title} onChange={e=>setTitle(e.target.value)} className="cyber-input font-bold" placeholder="หัวข้อ..." /><input value={img} onChange={e=>setImg(e.target.value)} className="cyber-input text-sm" placeholder="https://..." />{category === 'Shop' && <input value={link} onChange={e=>setLink(e.target.value)} className="cyber-input text-sm text-green-300" placeholder="🔗 ลิงก์สินค้า" />}<textarea value={content} onChange={e=>setContent(e.target.value)} className="cyber-input h-24"></textarea></div><div className="flex gap-3 mt-6"><button onClick={close} className="flex-1 py-3 rounded-xl bg-gray-800 text-gray-400">ยกเลิก</button><button onClick={submit} className="flex-1 py-3 rounded-xl neon-btn text-black font-bold">โพสต์</button></div></div></div>); };
+        const HomeSection = ({db, user}) => { const [news, setNews] = React.useState([]); const [filter, setFilter] = React.useState('All'); React.useEffect(() => db.collection("news").orderBy("time", "desc").onSnapshot(s => setNews(s.docs.map(d => d.data()))), []); const filteredNews = filter === 'All' ? news : news.filter(n => n.category === filter); return (<div className="px-5 space-y-6 pt-2"><div className="hide-scroll flex gap-3 overflow-x-auto pb-2">{['All', 'Esport', 'Games', 'Shop'].map((t,i) => (<div key={i} onClick={()=>setFilter(t)} className={`px-6 py-2 rounded-lg flex-shrink-0 cursor-pointer border skew-x-[-10deg] transition-all ${filter===t ? 'bg-gradient-to-r from-purple-600 to-blue-600 border-white/40 scale-105 shadow-lg' : 'border-white/10 bg-white/5 hover:bg-white/10'}`}><span className={`block skew-x-[10deg] text-xs font-bold uppercase ${filter===t ? 'text-white':'text-gray-400'}`}>{t === 'All' ? '🔥 Hot' : t}</span></div>))}</div><a href="https://shopee.co.th" target="_blank" className="ad-banner">🔥 9.9 ลดจัดหนัก! กดที่นี่เพื่อช้อป Shopee</a><div className="space-y-4 pb-4"><h3 className="font-bold text-lg flex items-center gap-2"><div className="w-1 h-5 bg-purple-500 rounded-full"></div> {filter === 'All' ? 'อัปเดตล่าสุด' : filter}</h3>{filteredNews.map((n, i) => (<div key={i} className="glass-card overflow-hidden group relative"><span className={`absolute top-2 right-2 px-2 py-1 rounded text-[10px] font-bold z-10 ${n.category==='Shop' ? 'bg-green-500 text-black' : 'bg-purple-600 text-white'}`}>{n.category || 'General'}</span>{n.image ? <div className="h-48 w-full overflow-hidden relative"><img src={n.image} className="w-full h-full object-cover transition duration-500 group-hover:scale-105" onError={(e)=>{e.target.style.display='none'}} /><div className="absolute inset-0 bg-gradient-to-t from-[#0f172a] to-transparent opacity-90"></div></div> : <div className="h-2 w-full bg-gradient-to-r from-purple-900 to-blue-900"></div>}<div className="p-4 relative"><h2 className="text-lg font-bold text-white mb-2 leading-tight">{n.title}</h2><p className="text-sm text-gray-300 font-light leading-relaxed whitespace-pre-line">{n.content}</p><div className="mt-3 flex items-center justify-between">{n.category === 'Shop' && n.link && <a href={n.link} target="_blank" className="px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-center rounded-lg font-bold text-white text-xs hover:scale-[1.02] transition shadow-lg">🛒 สั่งซื้อเลย</a>}<div className="text-[10px] text-gray-400 text-right flex-1 ml-2">โพสต์โดย: {n.authorName || 'Admin'}</div></div></div></div>))}</div></div>); };
+        const ChatSection = ({db, user}) => { const [msgs, setMsgs] = React.useState([]); const [txt, setTxt] = React.useState(''); const dummy = React.useRef(); React.useEffect(() => db.collection("chat").orderBy("time", "asc").onSnapshot(s => { setMsgs(s.docs.map(d => d.data())); setTimeout(() => dummy.current?.scrollIntoView({behavior:'smooth'}), 100); }), []); const send = () => { if(!txt.trim()) return; db.collection("chat").add({ user: user.email.split('@')[0], msg: txt, time: firebase.firestore.FieldValue.serverTimestamp() }); setTxt(''); }; return (<div className="h-full flex flex-col px-5 pt-2"><div className="flex-1 overflow-y-auto space-y-3 pb-4 hide-scroll">{msgs.map((m, i) => { const isMe = m.user === user.email.split('@')[0]; return (<div key={i} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}><div className={`max-w-[80%] p-3 rounded-2xl ${isMe ? 'bg-purple-600 rounded-tr-sm' : 'bg-gray-800 rounded-tl-sm'}`}><span className={`text-[10px] font-bold block mb-1 ${isMe ? 'text-purple-200' : 'text-cyan-400'}`}>{m.user}</span><p className="text-sm">{m.msg}</p></div></div>); })}<div ref={dummy}></div></div><div className="fixed bottom-24 left-4 right-4 flex gap-2" style={{marginBottom: 'env(safe-area-inset-bottom)'}}><input value={txt} onChange={e=>setTxt(e.target.value)} onKeyDown={e=>e.key==='Enter'&&send()} className="flex-1 glass-card px-4 py-3 outline-none text-white" placeholder="พิมพ์ข้อความ..." /><button onClick={send} className="w-12 h-12 bg-cyan-500 rounded-xl flex items-center justify-center font-bold text-black shadow-lg">➤</button></div></div>); };
+        const NavBtn = ({icon, label, active, onClick, color}) => <button onClick={onClick} className={`flex flex-col items-center gap-1 transition-all ${active ? '-translate-y-2' : 'opacity-60'}`}><span className={`text-2xl ${active ? 'drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]' : ''}`}>{icon}</span>{active && <span className={`text-[8px] font-bold tracking-widest ${color}`}>{label}</span>}</button>;
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
