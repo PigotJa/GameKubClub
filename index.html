@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>GameKub V7.3.1 (Embedded Voice)</title>
+    <title>GameKub V7.3.2 (Agora Voice)</title>
     
     <style>#err-box { display:none; position:fixed; top:0; left:0; width:100%; background:rgba(200,0,0,0.9); color:white; padding:20px; z-index:9999; font-size:12px; font-family:monospace; }</style>
     <div id="err-box"></div>
@@ -26,7 +26,7 @@
     <script src="https://cdn.jsdelivr.net/npm/firebase@10.7.1/firebase-auth-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/firebase@10.7.1/firebase-firestore-compat.js"></script>
 
-    <script src='https://meet.jit.si/external_api.js'></script>
+    <script src="https://cdn.jsdelivr.net/npm/agora-rtc-sdk-ng@4.20.0/AgoraRTC_N-production.js"></script>
 
     <style>
         :root { --primary: #c026d3; --accent: #22d3ee; }
@@ -50,20 +50,19 @@
         .rank-president { background: linear-gradient(45deg, #FFD700, #FDB931, #FFD700); background-size: 200% 200%; border: 2px solid #fff; box-shadow: 0 0 25px rgba(255, 215, 0, 0.8); color: #4a3b00; font-weight: 900; animation: gold-shine 2s linear infinite; }
         .rank-admin { background: linear-gradient(45deg, #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8, #ff0000); background-size: 400%; border: 2px solid white; color: white; font-weight: 900; text-shadow: 0 0 5px rgba(0,0,0,0.5); box-shadow: 0 0 30px rgba(255,255,255,0.6), 0 0 60px rgba(255, 0, 255, 0.4); animation: rainbow 5s linear infinite; position: relative; overflow: hidden; }
         .rank-admin::after { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: linear-gradient(to bottom right, rgba(255,255,255,0) 40%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 60%); transform: rotate(30deg); animation: shine-sweep 3s infinite; }
-        @keyframes glow-slow { 50% { box-shadow: 0 0 20px rgba(168, 85, 247, 0.2); } }
-        @keyframes glow-fast { 0% { transform: scale(1); } 50% { transform: scale(1.01); box-shadow: 0 0 30px rgba(239, 68, 68, 0.8); } 100% { transform: scale(1); } }
-        @keyframes gold-shine { 0% { background-position: 0% 50%; } 100% { background-position: 100% 50%; } }
-        @keyframes rainbow { 0% { background-position: 0% 50%; } 100% { background-position: 400% 50%; } }
-        @keyframes shine-sweep { 0% { transform: translateX(-100%) rotate(30deg); } 100% { transform: translateX(100%) rotate(30deg); } }
-
-        /* Jitsi Container Style */
-        #jitsi-container { width: 100%; height: 100%; background: #000; border-radius: 16px; overflow: hidden; }
+        
+        /* Speaking Animation */
+        .speaking { box-shadow: 0 0 0 2px #22d3ee; animation: speak-pulse 0.5s infinite alternate; }
+        @keyframes speak-pulse { from { transform: scale(1); } to { transform: scale(1.1); } }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
+        // --- Config ---
+        const AGORA_APP_ID = "e51f6bdc1ad449ab8c08090ba53c1c9f"; // ✅ ใส่ของนายให้แล้ว
+        
         const firebaseConfig = {
             apiKey: "AIzaSyD85oV6Wo9Y0agOJrwomi9KFHiX_KDnccs",
             authDomain: "gamekubclub.firebaseapp.com",
@@ -74,15 +73,22 @@
         };
 
         try { firebase.initializeApp(firebaseConfig); } catch(e) { console.error(e); }
-        
         const auth = firebase.auth();
         const db = firebase.firestore();
         const ADMIN_EMAIL = "pigot488@gmail.com";
+
+        // --- Agora Client (Global) ---
+        // สร้าง client ไว้นอก Component เพื่อให้เสียงไม่ตัดเวลาเปลี่ยนหน้า
+        let agoraClient = null;
+        let localAudioTrack = null;
 
         const App = () => {
             const [user, setUser] = React.useState(null);
             const [page, setPage] = React.useState('login');
             const [showPostModal, setShowPostModal] = React.useState(false);
+            
+            // State สำหรับระบบ Voice
+            const [voiceStatus, setVoiceStatus] = React.useState({ joined: false, roomName: '', micOn: true, users: [] });
 
             React.useEffect(() => {
                 const unsub = auth.onAuthStateChanged(u => {
@@ -91,6 +97,46 @@
                 });
                 return unsub;
             }, []);
+
+            // ฟังก์ชันจัดการ Voice (Join/Leave)
+            const handleVoice = async (action, roomName = "") => {
+                if (!agoraClient) agoraClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+
+                if (action === 'join') {
+                    if (voiceStatus.joined) await handleVoice('leave'); // ออกจากห้องเก่าก่อน
+                    
+                    try {
+                        const uid = await agoraClient.join(AGORA_APP_ID, roomName, null, user.uid);
+                        localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+                        await agoraClient.publish([localAudioTrack]);
+                        
+                        setVoiceStatus({ joined: true, roomName: roomName, micOn: true, users: [user.uid] });
+                        
+                        // Listen คนอื่นพูด
+                        agoraClient.on("user-published", async (u, mediaType) => {
+                            await agoraClient.subscribe(u, mediaType);
+                            if (mediaType === "audio") u.audioTrack.play();
+                        });
+                        
+                        // Listen คนอื่นเข้า/ออก
+                        agoraClient.on("user-joined", (u) => setVoiceStatus(prev => ({...prev, users: [...prev.users, u.uid]})));
+                        agoraClient.on("user-left", (u) => setVoiceStatus(prev => ({...prev, users: prev.users.filter(id => id !== u.uid)})));
+
+                    } catch (error) {
+                        alert("Error Joining Voice: " + error.message);
+                    }
+                } else if (action === 'leave') {
+                    if (localAudioTrack) { localAudioTrack.close(); localAudioTrack = null; }
+                    await agoraClient.leave();
+                    setVoiceStatus({ joined: false, roomName: '', micOn: true, users: [] });
+                } else if (action === 'toggleMic') {
+                    if (localAudioTrack) {
+                        const newMicState = !voiceStatus.micOn;
+                        await localAudioTrack.setEnabled(newMicState);
+                        setVoiceStatus(prev => ({ ...prev, micOn: newMicState }));
+                    }
+                }
+            };
 
             if (page === 'login') return (
                 <div className="h-screen flex flex-col justify-center items-center p-6 bg-black relative overflow-hidden">
@@ -119,10 +165,29 @@
                         <div onClick={() => setPage('profile')} className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500 to-cyan-500 p-[2px] cursor-pointer"><div className="w-full h-full rounded-full bg-black flex items-center justify-center font-bold overflow-hidden">{user.photoURL ? <img src={user.photoURL} className="w-full h-full object-cover" /> : user.email[0].toUpperCase()}</div></div>
                     </header>
 
+                    {/* 🔥 VOICE STATUS BAR (โชว์ตลอดเวลาถ้าอยู่ในห้อง) */}
+                    {voiceStatus.joined && (
+                        <div className="bg-green-900/90 backdrop-blur border-b border-green-500/50 px-4 py-2 flex justify-between items-center z-30 sticky top-[60px] animate-fade-in">
+                            <div className="flex items-center gap-2">
+                                <span className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
+                                <div>
+                                    <p className="text-xs font-bold text-green-400">กำลังคุยในห้อง: {voiceStatus.roomName}</p>
+                                    <p className="text-[10px] text-gray-400">สมาชิก {voiceStatus.users.length || 1} คน</p>
+                                </div>
+                            </div>
+                            <div className="flex gap-2">
+                                <button onClick={() => handleVoice('toggleMic')} className={`w-8 h-8 rounded-full flex items-center justify-center ${voiceStatus.micOn ? 'bg-gray-700' : 'bg-red-600 text-white'}`}>
+                                    {voiceStatus.micOn ? '🎙️' : '🔇'}
+                                </button>
+                                <button onClick={() => handleVoice('leave')} className="px-3 py-1 bg-red-600 rounded-lg text-xs font-bold">วางสาย</button>
+                            </div>
+                        </div>
+                    )}
+
                     <div className="flex-1 overflow-y-auto safe-pb">
                         {page === 'home' && <HomeSection db={db} user={user} />}
                         {page === 'chat' && <ChatSection db={db} user={user} />}
-                        {page === 'party' && <PartySection db={db} user={user} />}
+                        {page === 'party' && <PartySection db={db} user={user} handleVoice={handleVoice} currentRoom={voiceStatus.roomName} />}
                         {page === 'profile' && <ProfileSection db={db} user={user} />}
                     </div>
 
@@ -139,13 +204,12 @@
             );
         };
 
-        // --- 🎮 NEW: Party System with Embedded Voice ---
-        const PartySection = ({db, user}) => {
+        // --- 🎮 Party Section (Agora Integration) ---
+        const PartySection = ({db, user, handleVoice, currentRoom}) => {
             const [parties, setParties] = React.useState([]);
             const [showCreate, setShowCreate] = React.useState(false);
             const [gameName, setGameName] = React.useState('ROV');
             const [roomName, setRoomName] = React.useState('');
-            const [activeRoom, setActiveRoom] = React.useState(null); // เก็บสถานะห้องที่กำลังคุย
 
             React.useEffect(() => {
                 return db.collection("parties").orderBy("time", "desc").limit(10).onSnapshot(s => {
@@ -155,45 +219,24 @@
 
             const createParty = () => {
                 if(!roomName) return alert("ตั้งชื่อห้องหน่อยครับ!");
-                // สร้าง ID ห้องสำหรับ Jitsi
-                const roomId = "GameKub_" + Math.random().toString(36).substring(7);
+                // Agora Room Name ต้องเป็นภาษาอังกฤษ/ตัวเลข (Simple)
+                // แปลงชื่อห้องไทยให้เป็น ID มั่วๆ เพื่อความชัวร์ หรือใช้ชื่อตรงๆ ถ้ามั่นใจ
+                const cleanID = "Room_" + Math.floor(Math.random() * 10000); 
                 
                 db.collection("parties").add({
                     host: user.displayName || user.email.split('@')[0],
                     hostAvatar: user.photoURL || "",
                     game: gameName,
                     roomName: roomName,
-                    jitsiId: roomId, // เก็บ ID ห้องไว้ใช้ฝังไมค์
+                    agoraChannel: cleanID, // ชื่อห้องสำหรับต่อ Agora
                     time: firebase.firestore.FieldValue.serverTimestamp()
                 });
                 setShowCreate(false);
                 setRoomName('');
             };
 
-            const joinVoiceRoom = (party) => {
-                setActiveRoom(party); // เปิดหน้าต่าง Voice Room ในแอพ
-            };
-
             return (
                 <div className="p-5 pt-4 space-y-4 animate-fade-in h-full flex flex-col">
-                    
-                    {/* --- หน้าต่างห้องคุยไมค์ (Overlay) --- */}
-                    {activeRoom && (
-                        <div className="fixed inset-0 z-50 bg-black flex flex-col animate-fade-in" style={{paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)'}}>
-                            <div className="flex justify-between items-center p-4 border-b border-gray-800">
-                                <h3 className="font-bold text-green-400 flex items-center gap-2">
-                                    <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span> 
-                                    กำลังคุย: {activeRoom.roomName}
-                                </h3>
-                                <button onClick={()=>setActiveRoom(null)} className="px-4 py-1 bg-red-600 rounded-lg text-xs font-bold">❌ ออกจากห้อง</button>
-                            </div>
-                            <div className="flex-1 bg-gray-900 relative">
-                                {/* Component ฝัง Jitsi */}
-                                <JitsiEmbed roomName={activeRoom.jitsiId} userName={user.displayName || user.email.split('@')[0]} />
-                            </div>
-                        </div>
-                    )}
-
                     <div className="flex justify-between items-center">
                         <h2 className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-cyan-400">🎮 หาเพื่อนเล่น / คลอเกม</h2>
                         <button onClick={()=>setShowCreate(true)} className="px-3 py-1 bg-green-600 rounded-lg text-xs font-bold shadow-lg shadow-green-500/30">+ สร้างห้อง</button>
@@ -219,57 +262,23 @@
 
                     <div className="space-y-3 pb-20">
                         {parties.length === 0 && <p className="text-center text-gray-500 mt-10">ยังไม่มีห้อง.. สร้างเลย!</p>}
-                        {parties.map((p) => (
-                            <div key={p.id} className="glass-card p-4 flex items-center justify-between border-l-4 border-green-500 relative overflow-hidden">
-                                <div className="absolute right-0 top-0 p-1 bg-green-500/20 rounded-bl-lg text-[10px] text-green-300 font-bold">{p.game}</div>
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-gray-800 overflow-hidden border border-white/20">
-                                         <img src={p.hostAvatar || `https://ui-avatars.com/api/?name=${p.host}&background=random`} className="w-full h-full object-cover" />
+                        {parties.map((p) => {
+                            const isJoined = currentRoom === p.agoraChannel;
+                            return (
+                                <div key={p.id} className={`glass-card p-4 flex items-center justify-between border-l-4 relative overflow-hidden transition-all ${isJoined ? 'border-green-400 bg-green-900/20' : 'border-gray-600'}`}>
+                                    <div className="absolute right-0 top-0 p-1 bg-white/10 rounded-bl-lg text-[10px] text-gray-300 font-bold">{p.game}</div>
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-gray-800 overflow-hidden border border-white/20">
+                                             <img src={p.hostAvatar || `https://ui-avatars.com/api/?name=${p.host}&background=random`} className="w-full h-full object-cover" />
+                                        </div>
+                                        <div>
+                                            <h4 className="font-bold text-sm text-white">{p.roomName}</h4>
+                                            <p className="text-[10px] text-gray-400">Host: {p.host}</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h4 className="font-bold text-sm text-white">{p.roomName}</h4>
-                                        <p className="text-[10px] text-gray-400">Host: {p.host}</p>
-                                    </div>
-                                </div>
-                                <button onClick={()=>joinVoiceRoom(p)} className="px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg font-bold text-xs shadow-lg flex items-center gap-1 active:scale-95 transition">
-                                    🎙️ เข้าร่วม
-                                </button>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            );
-        };
-
-        // --- Component ย่อยสำหรับฝัง Jitsi ---
-        const JitsiEmbed = ({ roomName, userName }) => {
-            const jitsiContainerRef = React.useRef(null);
-
-            React.useEffect(() => {
-                const domain = "meet.jit.si";
-                const options = {
-                    roomName: roomName,
-                    width: '100%',
-                    height: '100%',
-                    parentNode: jitsiContainerRef.current,
-                    userInfo: { displayName: userName },
-                    configOverwrite: { 
-                        startWithAudioMuted: false, // เปิดไมค์เลย
-                        startWithVideoMuted: true,  // ปิดกล้องไว้ก่อน (ประหยัดเน็ต)
-                        disableDeepLinking: true    // บังคับไม่ให้เปิดแอพ Jitsi
-                    },
-                    interfaceConfigOverwrite: {
-                        TOOLBAR_BUTTONS: ['microphone', 'camera', 'tileview', 'hangup'], // ปุ่มที่ให้มีแค่จำเป็น
-                        MOBILE_APP_PROMO: false
-                    }
-                };
-                const api = new window.JitsiMeetExternalAPI(domain, options);
-                return () => api.dispose(); // ล้างข้อมูลเมื่อออกจากห้อง
-            }, [roomName]);
-
-            return <div ref={jitsiContainerRef} id="jitsi-container"></div>;
-        };
-
-        // --- Existing Components (Profile, Chat, Home, Nav) ---
-        // (ส่วนนี้เหมือนเดิม 100% จาก V7.2 เพื่อความเสถียรครับ)
-        const ProfileSection = ({db, user}) => { const [profile, setProfile] = React.useState({}); const [stats, setStats] = React.useState({ news: 0, chat: 0 }); const [isEditing, setIsEditing] = React.useState(false); const [editName, setEditName] = React.useState(''); const [editAvatar, setEditAvatar] = React.useState(''); const [adminTargetEmail, setAdminTargetEmail] = React.useState(''); const [adminTargetRank, setAdminTargetRank] = React.useState(''); React.useEffect(() => { const docRef = db.collection("users").doc(user.email); docRef.get().then(doc => { if(doc.exists) { setProfile(doc.data()); setEditName(doc.data().nickname || ''); setEditAvatar(doc.data().avatar || ''); } }); db.collection("news").where("authorEmail", "==", user.email).get().then(snap => setStats(p => ({ ...p, news: snap.size }))); db.collection("chat").where("user", "==", user.email.split('@')[0]).get().then(snap => setStats(p => ({ ...p, chat: snap.size }))); }, []); const saveProfile = () => { db.collection("users").doc(user.email).set({ nickname:
+                                    {isJoined ? (
+                                        <button className="px-4 py-2 bg-gray-700 rounded-lg font-bold text-xs text-green-400 cursor-default">
+                                            🔊 อยู่ในห้องนี้
+                                        </button>
+                                    ) : (
+  
