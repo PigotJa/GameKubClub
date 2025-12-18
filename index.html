@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>GameKub V11.0 Millionaire</title>
+    <title>GameKub V12.0 Master Live</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;900&display=swap" rel="stylesheet">
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -15,15 +15,17 @@
     <script src="https://download.agora.io/sdk/release/AgoraRTC_N-4.18.2.js"></script>
 
     <style>
-        body { font-family: 'Kanit', sans-serif; background: #020617; color: #fff; margin:0; overflow:hidden; }
+        :root { --primary: #c026d3; --accent: #22d3ee; }
+        body { font-family: 'Kanit', sans-serif; background-color: #020617; color: #fff; margin:0; overflow:hidden; }
+        .cyber-bg { background: radial-gradient(circle at top right, #1e1b4b, #020617); height: 100vh; }
         .glass { background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.05); }
-        .god-text { color: #fbbf24; text-shadow: 0 0 10px #fbbf24; font-weight: 900; }
-        .btn-premium { background: linear-gradient(90deg, #22d3ee, #c026d3); color: white; border: none; font-weight: 900; }
-        .live-indicator { width: 10px; height: 10px; background: red; border-radius: 50%; animation: blink 1s infinite; }
-        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+        .god-text { color: #fbbf24; text-shadow: 0 0 10px #fbbf24; font-weight: 900; animation: glow 1.5s infinite; }
+        @keyframes glow { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+        .live-tag { background: red; animation: blink 1s infinite; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
     </style>
 </head>
-<body>
+<body class="cyber-bg">
     <div id="root"></div>
 
     <script type="text/babel">
@@ -46,75 +48,105 @@
             const [user, setUser] = React.useState(null);
             const [userData, setUserData] = React.useState(null);
             const [page, setPage] = React.useState('loading');
+            const [isLive, setIsLive] = React.useState(false);
 
             React.useEffect(() => {
                 return auth.onAuthStateChanged(async (u) => {
                     if (u) {
                         const userRef = db.collection("users").doc(u.uid);
-                        const doc = await userRef.get();
-                        
-                        let data = doc.exists ? doc.data() : { 
-                            lv: 1, xp: 0, coin: 0, diamond: 0, streak: 0, lastCheckin: 0, isNew: true 
-                        };
-
-                        // --- ระบบ Check-in ---
-                        const today = new Date().toDateString();
-                        const last = data.lastCheckin ? new Date(data.lastCheckin).toDateString() : "";
-                        const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
-                        
-                        if (today !== last) {
-                            if (last === yesterday.toDateString()) data.streak += 1;
-                            else data.streak = 1;
-                            
-                            data.coin += 0.5;
-                            data.lastCheckin = Date.now();
-                            userRef.set(data, {merge: true});
-                            alert(`🎁 เช็คอินวันที่ ${data.streak}! รับ 0.5 Coin`);
-                        }
-
-                        userRef.onSnapshot(s => setUserData(s.data()));
+                        userRef.onSnapshot(s => {
+                            if (s.exists) setUserData(s.data());
+                            else userRef.set({ lv: 1, xp: 0, coin: 10, streak: 1, lastCheckin: Date.now(), email: u.email });
+                        });
                         setUser(u); setPage('home');
                     } else setPage('auth');
                 });
             }, []);
 
-            if (page === 'loading') return <div className="h-screen flex items-center justify-center font-black">GAMEKUB...</div>;
+            if (page === 'loading') return <div className="h-screen flex items-center justify-center font-black italic">GAMEKUB...</div>;
 
             if (page === 'auth') return (
                 <div className="h-screen flex flex-col justify-center items-center p-10 text-center">
-                    <h1 className="text-5xl font-black italic text-cyan-400 mb-10">GAMEKUB</h1>
+                    <h1 className="text-5xl font-black italic text-cyan-400 mb-2">GAMEKUB</h1>
+                    <p className="text-gray-500 text-[10px] mb-10 uppercase tracking-widest">Global Gaming Community</p>
                     <button onClick={() => {
                         const e = prompt("อีเมล:"); const p = prompt("รหัสผ่าน:");
                         if(e&&p) auth.signInWithEmailAndPassword(e,p).catch(()=>auth.createUserWithEmailAndPassword(e,p));
-                    }} className="w-full py-5 btn-premium rounded-3xl shadow-2xl">ENTER METAVERSE</button>
+                    }} className="w-full py-5 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-3xl font-black shadow-xl active:scale-95 transition-all">START ADVENTURE</button>
                 </div>
             );
 
             return (
-                <div className="h-screen flex flex-col">
-                    <header className="p-4 glass flex justify-between items-center border-b border-white/10">
+                <div className="h-screen flex flex-col relative">
+                    {/* 🎥 Full-Screen Live Panel (เด้งทับเมื่อกด Go Live) */}
+                    {isLive && (
+                        <div className="fixed inset-0 z-50 bg-black flex flex-col">
+                            <div className="relative flex-1 bg-gray-900">
+                                <div id="local-stream" className="w-full h-full flex items-center justify-center">
+                                    <p className="text-white text-xs opacity-50">กล้องกำลังทำงาน... (อย่าลืมเปิด Permission ในแอพ)</p>
+                                </div>
+                                <div className="absolute top-6 left-6 flex gap-2">
+                                    <span className="live-tag px-3 py-1 rounded-full text-[10px] font-black">LIVE</span>
+                                    <span className="bg-black/40 px-3 py-1 rounded-full text-[10px]">💎 {userData?.diamond || 0}</span>
+                                </div>
+                                <button onClick={()=>setIsLive(false)} className="absolute top-6 right-6 text-2xl">✕</button>
+                                
+                                <div className="absolute bottom-10 left-6 right-6 h-40 overflow-y-auto pointer-events-none">
+                                    <p className="text-[10px] text-cyan-400 font-bold bg-black/20 p-2 rounded mb-2">ระบบ: เริ่มการสตรีมสดแล้ว!</p>
+                                    <p className="text-[10px] text-yellow-400 bg-black/20 p-2 rounded">🎁 แอดมิน ส่ง มงกุฎเทพ ให้คุณ!</p>
+                                </div>
+                            </div>
+                            <div className="p-8 glass flex justify-around border-t border-white/10">
+                                <button className="text-xs font-bold">🎙️ ปิดไมค์</button>
+                                <button onClick={()=>setIsLive(false)} className="bg-red-600 px-10 py-3 rounded-2xl font-black">จบการสตรีม</button>
+                                <button className="text-xs font-bold">🔄 สลับกล้อง</button>
+                            </div>
+                        </div>
+                    )}
+
+                    <header className="p-5 flex justify-between items-center glass border-b border-white/10">
                         <div>
-                            <h2 className="text-lg font-black italic text-cyan-400">GAMEKUB</h2>
-                            <div className="flex gap-2 text-[10px] font-bold">
+                            <h2 className="text-xl font-black italic text-cyan-400">GAMEKUB</h2>
+                            <div className="flex gap-2 text-[10px] font-bold mt-1">
                                 <span className={user.email === ADMIN_EMAIL ? "god-text" : "text-gray-400"}>
                                     {user.email === ADMIN_EMAIL ? "RANK: GOD" : `LV.${userData?.lv}`}
                                 </span>
                                 <span className="text-yellow-400">💰 {userData?.coin.toFixed(1)}</span>
                             </div>
                         </div>
-                        <button onClick={()=>setPage('shop')} className="bg-white/5 px-3 py-1 rounded-full text-[10px] border border-white/10">เติมเงิน</button>
+                        <div onClick={()=>setPage('profile')} className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-purple-500 to-cyan-500 p-[2px] cursor-pointer">
+                            <div className="w-full h-full rounded-[14px] bg-black flex items-center justify-center font-bold">{user.email[0].toUpperCase()}</div>
+                        </div>
                     </header>
 
-                    <main className="flex-1 overflow-y-auto p-4 pb-24">
-                        {page === 'home' && <HomeSection userData={userData} />}
-                        {page === 'chat' && <ChatSection db={db} user={user} userData={userData} />}
+                    <main className="flex-1 overflow-y-auto p-5 pb-24">
+                        {page === 'home' && (
+                            <div className="space-y-6">
+                                <div className="p-6 rounded-[2rem] bg-gradient-to-br from-cyan-900/40 to-purple-900/40 border border-white/10">
+                                    <div className="flex justify-between items-center mb-1">
+                                        <p className="text-[10px] font-bold text-cyan-400 uppercase">Check-in Streak</p>
+                                        <div className="w-2 h-2 rounded-full bg-red-600 live-tag"></div>
+                                    </div>
+                                    <h3 className="text-4xl font-black italic">{userData?.streak || 1} DAYS</h3>
+                                </div>
+                                
+                                <div className="p-5 glass rounded-3xl flex items-center justify-between border border-white/5 shadow-2xl">
+                                    <div>
+                                        <h4 className="font-black text-sm uppercase italic">Live Studio</h4>
+                                        <p className="text-[10px] text-gray-500">เปิดกล้องรับ Diamond เพื่อแลกเงินสด</p>
+                                    </div>
+                                    <button onClick={()=>setIsLive(true)} className="bg-red-600 px-6 py-3 rounded-2xl text-[10px] font-black shadow-lg shadow-red-600/20 active:scale-95 transition-all">GO LIVE</button>
+                                </div>
+                            </div>
+                        )}
                         {page === 'shop' && <ShopSection db={db} user={user} userData={userData} />}
+                        {page === 'chat' && <ChatSection db={db} user={user} userData={userData} />}
                         {page === 'profile' && <ProfileSection user={user} userData={userData} auth={auth} />}
                     </main>
 
-                    <nav className="fixed bottom-0 w-full glass p-5 flex justify-around">
+                    <nav className="fixed bottom-0 w-full glass p-5 flex justify-around border-t border-white/10">
                         {['home', 'shop', 'chat', 'profile'].map(p => (
-                            <button key={p} onClick={() => setPage(p)} className={`text-2xl ${page === p ? 'text-cyan-400' : 'text-gray-600'}`}>
+                            <button key={p} onClick={() => setPage(p)} className={`text-2xl transition-all ${page === p ? 'text-cyan-400 -translate-y-2' : 'text-gray-600'}`}>
                                 {p === 'home' ? '🏠' : p === 'shop' ? '💎' : p === 'chat' ? '💬' : '👤'}
                             </button>
                         ))}
@@ -123,115 +155,83 @@
             );
         };
 
-        const HomeSection = ({userData}) => (
-            <div className="space-y-4">
-                <div className="p-6 rounded-3xl bg-gradient-to-r from-cyan-900/50 to-purple-900/50 border border-white/10">
-                    <div className="flex justify-between items-center">
-                        <p className="text-xs font-bold opacity-60">เช็คอินต่อเนื่อง</p>
-                        <div className="live-indicator"></div>
-                    </div>
-                    <h3 className="text-3xl font-black mt-1">{userData?.streak} วัน</h3>
-                    <p className="text-[10px] mt-2 text-cyan-300">รักษาสถิติเพื่อรับโบนัส Coin ทุกวัน!</p>
-                </div>
-                <div className="p-4 glass rounded-2xl flex items-center justify-between">
-                    <div>
-                        <p className="font-bold text-sm">ระบบไลฟ์สด (Beta)</p>
-                        <p className="text-[10px] text-gray-500 font-medium">เปิดกล้องสร้างรายได้จากของขวัญ</p>
-                    </div>
-                    <button className="bg-red-600 px-4 py-2 rounded-xl text-xs font-bold">GO LIVE</button>
-                </div>
-            </div>
-        );
-
-        const ShopSection = ({db, user, userData}) => {
-            const sendTopup = (amount, bath) => {
-                const slip = prompt(`กรุณาโอนเงิน ${bath} บาท ไปที่ [เลขบัญชีลูกพี่] แล้วพิมพ์คำว่า 'โอนแล้ว'`);
-                if(slip) {
-                    db.collection("topups").add({
-                        uid: user.uid,
-                        email: user.email,
-                        amount: amount,
-                        bath: bath,
-                        status: 'pending',
-                        time: Date.now()
-                    });
-                    alert("✅ ส่งเรื่องการเติมเงินแล้ว รอแอดมินตรวจสอบครับ");
-                }
-            };
-
-            const discount = Math.min(userData?.lv * 2, 20); // ลดสูงสุด 20% ตามเลเวล
-
-            return (
-                <div className="space-y-4">
-                    <h2 className="text-xl font-black italic">TOP-UP CENTER</h2>
-                    <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-2xl">
-                        <p className="text-xs font-bold text-yellow-500">🔥 โปรโมชั่นเด็กใหม่: เติม 100.- รับ 500 Coin!</p>
-                    </div>
-                    <div className="grid grid-cols-1 gap-3">
-                        <button onClick={()=>sendTopup(500, 100)} className="p-5 glass rounded-3xl text-left border-l-4 border-cyan-500">
-                            <p className="font-bold">PRO: 500 COINS</p>
-                            <p className="text-xs opacity-50 text-cyan-400">ราคา 100 บาท (โปรสมาชิกใหม่)</p>
-                        </button>
-                        <button onClick={()=>sendTopup(10, 5)} className="p-5 glass rounded-3xl text-left">
-                            <p className="font-bold">10 COINS</p>
-                            <p className="text-xs opacity-50">ราคาปกติ 5 บาท (ส่วนลดยศ: -{discount}%)</p>
-                        </button>
-                    </div>
-                    {user.email === ADMIN_EMAIL && <AdminPanel db={db} />}
-                </div>
-            );
-        };
-
-        const AdminPanel = ({db}) => {
-            const [slips, setSlips] = React.useState([]);
-            React.useEffect(() => db.collection("topups").where("status","==","pending").onSnapshot(s => setSlips(s.docs.map(d=>({id:d.id, ...d.data()})))) , []);
-            const approve = async (s) => {
-                await db.collection("users").doc(s.uid).update({ coin: firebase.firestore.FieldValue.increment(s.amount) });
-                await db.collection("topups").doc(s.id).update({ status: 'success' });
-            };
-            return (
-                <div className="mt-10 p-4 border border-red-500/20 rounded-2xl bg-red-500/5">
-                    <h3 className="text-red-500 font-bold mb-4">👑 ADMIN: รายการรออนุมัติ</h3>
-                    {slips.map(s => (
-                        <div key={s.id} className="flex justify-between items-center bg-black/40 p-3 rounded-xl mb-2">
-                            <div className="text-[10px]">
-                                <p className="font-bold">{s.email}</p>
-                                <p>{s.amount} Coin ({s.bath}.-)</p>
-                            </div>
-                            <button onClick={()=>approve(s)} className="bg-green-600 text-[10px] px-3 py-1 rounded-lg">อนุมัติ</button>
-                        </div>
-                    ))}
-                </div>
-            );
-        };
-
         const ChatSection = ({db, user, userData}) => {
             const [msgs, setMsgs] = React.useState([]);
-            React.useEffect(() => db.collection("chats").orderBy("time","asc").limitToLast(15).onSnapshot(s => setMsgs(s.docs.map(d=>d.data()))), []);
+            React.useEffect(() => {
+                return db.collection("chats").orderBy("time","asc").limitToLast(15).onSnapshot(s => setMsgs(s.docs.map(d=>d.data())));
+            }, []);
             return (
                 <div className="flex flex-col h-full">
-                    <div className="flex-1 space-y-3 overflow-y-auto">
+                    <div className="flex-1 space-y-4 overflow-y-auto">
                         {msgs.map((m, i) => (
                             <div key={i} className={`flex flex-col ${m.user === user.email ? 'items-end' : 'items-start'}`}>
-                                <div className={`p-3 rounded-2xl text-sm ${m.user === user.email ? 'bg-cyan-600' : 'bg-white/10'}`}>{m.text}</div>
+                                <span className={`text-[8px] font-bold mb-1 ${m.user === ADMIN_EMAIL ? 'god-text' : 'text-gray-500'}`}>{m.user}</span>
+                                <div className={`p-3 rounded-2xl text-sm ${m.user === user.email ? 'bg-cyan-600 rounded-tr-none' : 'bg-white/5 border border-white/5 rounded-tl-none'}`}>{m.text}</div>
                             </div>
                         ))}
                     </div>
+                    <form className="mt-4 flex gap-2" onSubmit={(e)=>{
+                        e.preventDefault(); const t = e.target.msg.value;
+                        if(t) db.collection("chats").add({text:t, user:user.email, time:Date.now()});
+                        e.target.reset();
+                    }}>
+                        <input name="msg" placeholder="คุยกับเพื่อน..." className="flex-1 p-4 bg-white/5 border border-white/10 rounded-2xl outline-none" />
+                        <button className="bg-white text-black px-6 rounded-2xl font-black">ส่ง</button>
+                    </form>
+                </div>
+            );
+        };
+
+        const ShopSection = ({db, user, userData}) => {
+            const [pending, setPending] = React.useState([]);
+            React.useEffect(() => {
+                if(user.email === ADMIN_EMAIL) return db.collection("topups").where("status","==","pending").onSnapshot(s => setPending(s.docs.map(d=>({id:d.id, ...d.data()}))));
+            }, []);
+            const sendTopup = (amt, bath) => {
+                const conf = confirm(`โอนเงิน ${bath}.- ไปที่ [ธนาคารลูกพี่] ใช่หรือไม่?`);
+                if(conf) db.collection("topups").add({ uid: user.uid, email: user.email, amount: amt, bath: bath, status: 'pending', time: Date.now() });
+            };
+            return (
+                <div className="space-y-4">
+                    <h3 className="text-xl font-black italic text-yellow-400">COIN SHOP</h3>
+                    <div className="grid gap-3">
+                        <div onClick={()=>sendTopup(500,100)} className="p-5 glass rounded-3xl border-l-4 border-cyan-500">
+                            <p className="font-bold">PRO: 500 COINS</p>
+                            <p className="text-[10px] opacity-50">ราคาพิเศษ 100.- (สำหรับสมาชิกใหม่)</p>
+                        </div>
+                        <div onClick={()=>sendTopup(10,5)} className="p-5 glass rounded-3xl">
+                            <p className="font-bold">10 COINS</p>
+                            <p className="text-[10px] opacity-50">ราคาปกติ 5.-</p>
+                        </div>
+                    </div>
+                    {user.email === ADMIN_EMAIL && pending.length > 0 && (
+                        <div className="mt-8 p-4 bg-red-500/10 rounded-2xl border border-red-500/20">
+                            <p className="text-red-500 font-bold text-xs mb-3">👑 รายการรออนุมัติ</p>
+                            {pending.map(s => (
+                                <div key={s.id} className="flex justify-between items-center bg-black/40 p-3 rounded-xl mb-2">
+                                    <span className="text-[10px]">{s.email} ({s.bath}.-)</span>
+                                    <button onClick={async ()=>{
+                                        await db.collection("users").doc(s.uid).update({ coin: firebase.firestore.FieldValue.increment(s.amount) });
+                                        await db.collection("topups").doc(s.id).update({ status: 'success' });
+                                    }} className="bg-green-600 text-[10px] px-3 py-1 rounded-lg">อนุมัติ</button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             );
         };
 
         const ProfileSection = ({user, userData, auth}) => (
-            <div className="text-center pt-10 space-y-6">
-                <div className="w-32 h-32 mx-auto rounded-full border-4 border-cyan-500 p-1">
-                    <div className="w-full h-full bg-gray-800 rounded-full flex items-center justify-center text-4xl font-black italic">{user.email[0].toUpperCase()}</div>
+            <div className="text-center space-y-8 pt-6">
+                <div className="w-32 h-32 mx-auto rounded-[2.5rem] rotate-6 bg-gradient-to-tr from-purple-500 to-cyan-500 p-1">
+                    <div className="w-full h-full rounded-[2.2rem] bg-black flex items-center justify-center text-5xl font-black italic">{user.email[0].toUpperCase()}</div>
                 </div>
-                <h2 className="text-2xl font-black italic">{user.email === ADMIN_EMAIL ? "👑 GOD ADMIN" : user.email.split('@')[0]}</h2>
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="glass p-4 rounded-3xl"><p className="text-[10px] text-gray-500">MY COINS</p><p className="text-xl font-black text-yellow-400">{userData?.coin.toFixed(1)}</p></div>
-                    <div className="glass p-4 rounded-3xl"><p className="text-[10px] text-gray-500">VJ DIAMONDS</p><p className="text-xl font-black text-pink-500">{userData?.diamond || 0}</p></div>
+                <div>
+                    <h2 className={`text-2xl font-black ${user.email === ADMIN_EMAIL ? 'god-text' : ''}`}>{user.email === ADMIN_EMAIL ? '👑 GOD ADMIN' : user.email.split('@')[0]}</h2>
+                    <p className="text-yellow-400 font-bold mt-1 tracking-widest">BALANCE: {userData?.coin.toFixed(1)} COINS</p>
                 </div>
-                <button onClick={()=>auth.signOut()} className="text-red-500 text-xs font-bold opacity-50 uppercase tracking-widest">Sign Out</button>
+                <button onClick={()=>auth.signOut()} className="w-full py-4 text-red-500 font-bold border border-red-500/20 rounded-2xl text-[10px] tracking-widest uppercase">Sign Out</button>
             </div>
         );
 
