@@ -3,30 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>GameKub V7 - Rank RGB</title>
+    <title>GameKub V7.2 (Anti-Block)</title>
     
+    <style>#err-box { display:none; position:fixed; top:0; left:0; width:100%; background:rgba(200,0,0,0.9); color:white; padding:20px; z-index:9999; font-size:12px; font-family:monospace; }</style>
+    <div id="err-box"></div>
+    <script>
+        window.onerror = function(msg, url, line) {
+            var b = document.getElementById('err-box');
+            b.style.display = 'block';
+            b.innerHTML += '❌ <b>Error:</b> ' + msg + '<br>Line: ' + line + '<br><hr>';
+        };
+    </script>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;900&display=swap" rel="stylesheet">
     
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://unpkg.com/firebase@10.7.1/firebase-app-compat.js"></script>
-    <script src="https://unpkg.com/firebase@10.7.1/firebase-auth-compat.js"></script>
-    <script src="https://unpkg.com/firebase@10.7.1/firebase-firestore-compat.js"></script>
+    <script crossorigin src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/firebase@10.7.1/firebase-app-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/firebase@10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/firebase@10.7.1/firebase-firestore-compat.js"></script>
 
     <style>
         :root { --primary: #c026d3; --accent: #22d3ee; }
-        body {
-            font-family: 'Kanit', sans-serif;
-            background-color: #020617;
-            color: #fff;
-            background-image: radial-gradient(circle at 0% 0%, rgba(124, 58, 237, 0.15) 0%, transparent 50%), radial-gradient(circle at 100% 100%, rgba(192, 38, 211, 0.15) 0%, transparent 50%);
-            background-attachment: fixed;
-            -webkit-user-select: none;
-            padding-top: env(safe-area-inset-top);
-            padding-bottom: env(safe-area-inset-bottom);
-        }
+        body { font-family: 'Kanit', sans-serif; background-color: #020617; color: #fff; background-image: radial-gradient(circle at 0% 0%, rgba(124, 58, 237, 0.15) 0%, transparent 50%), radial-gradient(circle at 100% 100%, rgba(192, 38, 211, 0.15) 0%, transparent 50%); background-attachment: fixed; -webkit-user-select: none; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
         .hide-scroll::-webkit-scrollbar { display: none; }
         .glass-card { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; }
         .cyber-input, .cyber-select { width: 100%; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2); padding: 12px; border-radius: 12px; color: white; outline: none; }
@@ -38,85 +40,29 @@
         .safe-pb { padding-bottom: 150px; } 
         .safe-bottom-nav { padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
 
-        /* --- 🌈 RANK SYSTEM STYLES (ระบบสีแรงค์) --- */
-
-        /* 1. Newbie (เขียว - ไม่วิบวับ) */
-        .rank-newbie {
-            background: rgba(16, 185, 129, 0.1);
-            border: 1px solid #10b981;
-            color: #34d399;
-        }
-
-        /* 2. General (น้ำเงิน - ไม่วิบวับ) */
-        .rank-general {
-            background: rgba(59, 130, 246, 0.1);
-            border: 1px solid #3b82f6;
-            color: #60a5fa;
-        }
-
-        /* 3. Advanced (ม่วง - วิบวับนิดหน่อย) */
-        .rank-advanced {
-            background: linear-gradient(135deg, #a855f7, #6366f1);
-            border: 1px solid #c084fc;
-            box-shadow: 0 0 10px rgba(168, 85, 247, 0.4);
-            color: white;
-            animation: glow-slow 3s infinite;
-        }
+        /* --- 🌈 RANK SYSTEM STYLES (ระบบสีแรงค์ V7) --- */
+        .rank-newbie { background: rgba(16, 185, 129, 0.1); border: 1px solid #10b981; color: #34d399; }
+        .rank-general { background: rgba(59, 130, 246, 0.1); border: 1px solid #3b82f6; color: #60a5fa; }
+        .rank-advanced { background: linear-gradient(135deg, #a855f7, #6366f1); border: 1px solid #c084fc; box-shadow: 0 0 10px rgba(168, 85, 247, 0.4); color: white; animation: glow-slow 3s infinite; }
+        .rank-executive { background: linear-gradient(135deg, #ef4444, #b91c1c); border: 1px solid #f87171; box-shadow: 0 0 20px rgba(239, 68, 68, 0.6); color: white; animation: glow-fast 1.5s infinite; }
+        .rank-president { background: linear-gradient(45deg, #FFD700, #FDB931, #FFD700); background-size: 200% 200%; border: 2px solid #fff; box-shadow: 0 0 25px rgba(255, 215, 0, 0.8); color: #4a3b00; font-weight: 900; animation: gold-shine 2s linear infinite; }
+        
+        /* GOD ADMIN (รุ้ง RGB) */
+        .rank-admin { background: linear-gradient(45deg, #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8, #ff0000); background-size: 400%; border: 2px solid white; color: white; font-weight: 900; text-shadow: 0 0 5px rgba(0,0,0,0.5); box-shadow: 0 0 30px rgba(255,255,255,0.6), 0 0 60px rgba(255, 0, 255, 0.4); animation: rainbow 5s linear infinite; position: relative; overflow: hidden; }
+        .rank-admin::after { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: linear-gradient(to bottom right, rgba(255,255,255,0) 40%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 60%); transform: rotate(30deg); animation: shine-sweep 3s infinite; }
+        
         @keyframes glow-slow { 50% { box-shadow: 0 0 20px rgba(168, 85, 247, 0.2); } }
-
-        /* 4. Executive (แดง - วิบวับแรง) */
-        .rank-executive {
-            background: linear-gradient(135deg, #ef4444, #b91c1c);
-            border: 1px solid #f87171;
-            box-shadow: 0 0 20px rgba(239, 68, 68, 0.6);
-            color: white;
-            animation: glow-fast 1.5s infinite;
-        }
         @keyframes glow-fast { 0% { transform: scale(1); } 50% { transform: scale(1.01); box-shadow: 0 0 30px rgba(239, 68, 68, 0.8); } 100% { transform: scale(1); } }
-
-        /* 5. President (ทอง - วิบวับจัดเต็ม) */
-        .rank-president {
-            background: linear-gradient(45deg, #FFD700, #FDB931, #FFD700);
-            background-size: 200% 200%;
-            border: 2px solid #fff;
-            box-shadow: 0 0 25px rgba(255, 215, 0, 0.8);
-            color: #4a3b00;
-            font-weight: 900;
-            animation: gold-shine 2s linear infinite;
-        }
         @keyframes gold-shine { 0% { background-position: 0% 50%; } 100% { background-position: 100% 50%; } }
-
-        /* 6. GOD ADMIN (รุ้ง RGB - สวยที่สุดในจักรวาล) */
-        .rank-admin {
-            background: linear-gradient(45deg, #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8, #ff0000);
-            background-size: 400%;
-            border: 2px solid white;
-            color: white;
-            font-weight: 900;
-            text-shadow: 0 0 5px rgba(0,0,0,0.5);
-            box-shadow: 0 0 30px rgba(255,255,255,0.6), 0 0 60px rgba(255, 0, 255, 0.4);
-            animation: rainbow 5s linear infinite;
-            position: relative;
-            overflow: hidden;
-        }
-        /* เอฟเฟกต์แสงกวาดผ่าน */
-        .rank-admin::after {
-            content: '';
-            position: absolute;
-            top: -50%; left: -50%; width: 200%; height: 200%;
-            background: linear-gradient(to bottom right, rgba(255,255,255,0) 40%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 60%);
-            transform: rotate(30deg);
-            animation: shine-sweep 3s infinite;
-        }
         @keyframes rainbow { 0% { background-position: 0% 50%; } 100% { background-position: 400% 50%; } }
         @keyframes shine-sweep { 0% { transform: translateX(-100%) rotate(30deg); } 100% { transform: translateX(100%) rotate(30deg); } }
-
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
+        // ✅ กุญแจใหม่ GameKubClub
         const firebaseConfig = {
             apiKey: "AIzaSyD85oV6Wo9Y0agOJrwomi9KFHiX_KDnccs",
             authDomain: "gamekubclub.firebaseapp.com",
@@ -126,10 +72,13 @@
             appId: "1:949050109538:android:c8c2d7dd647a86bbd1eb3b"
         };
 
-        firebase.initializeApp(firebaseConfig);
+        try {
+            firebase.initializeApp(firebaseConfig);
+        } catch(e) { console.error(e); }
+        
         const auth = firebase.auth();
         const db = firebase.firestore();
-
+        
         // 👑 อีเมลของ Admin (นาย)
         const ADMIN_EMAIL = "pigot488@gmail.com";
 
@@ -167,39 +116,22 @@
                 <div className="h-full flex flex-col bg-[#020617] text-white">
                     <header className="pt-2 px-5 pb-2 flex justify-between items-center z-20 bg-[#020617]/80 backdrop-blur-sm sticky top-0">
                         <div>
-                            <h1 className="text-2xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-400">
-                                GAME<span className="text-white">KUB</span>
-                            </h1>
-                            <div className="flex items-center gap-1">
-                                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                                <p className="text-[10px] text-green-400 font-bold tracking-widest">ONLINE</p>
-                            </div>
+                            <h1 className="text-2xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-400">GAME<span className="text-white">KUB</span></h1>
+                            <div className="flex items-center gap-1"><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span><p className="text-[10px] text-green-400 font-bold tracking-widest">ONLINE</p></div>
                         </div>
-                        <div onClick={() => setPage('profile')} className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500 to-cyan-500 p-[2px] cursor-pointer">
-                            <div className="w-full h-full rounded-full bg-black flex items-center justify-center font-bold overflow-hidden">
-                                {user.photoURL ? <img src={user.photoURL} className="w-full h-full object-cover" /> : user.email[0].toUpperCase()}
-                            </div>
-                        </div>
+                        <div onClick={() => setPage('profile')} className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500 to-cyan-500 p-[2px] cursor-pointer"><div className="w-full h-full rounded-full bg-black flex items-center justify-center font-bold overflow-hidden">{user.photoURL ? <img src={user.photoURL} className="w-full h-full object-cover" /> : user.email[0].toUpperCase()}</div></div>
                     </header>
-
                     <div className="flex-1 overflow-y-auto safe-pb">
                         {page === 'home' && <HomeSection db={db} user={user} />}
                         {page === 'chat' && <ChatSection db={db} user={user} />}
                         {page === 'profile' && <ProfileSection db={db} user={user} />}
                     </div>
-
                     <nav className="fixed bottom-0 w-full bg-[#020617]/95 backdrop-blur-xl border-t border-white/10 pt-3 px-6 flex justify-around items-end z-40 safe-bottom-nav">
                         <NavBtn icon="🏠" label="HOME" active={page==='home'} onClick={()=>setPage('home')} color="text-purple-400" />
                         <NavBtn icon="💬" label="CHAT" active={page==='chat'} onClick={()=>setPage('chat')} color="text-cyan-400" />
                         <NavBtn icon="👤" label="PROFILE" active={page==='profile'} onClick={()=>setPage('profile')} color="text-pink-400" />
                     </nav>
-
-                    {page === 'home' && (
-                        <button onClick={() => setShowPostModal(true)} className="fixed bottom-28 right-5 w-14 h-14 neon-btn rounded-full flex items-center justify-center z-30 active:rotate-90 transition text-black font-bold text-2xl" style={{marginBottom: 'env(safe-area-inset-bottom)'}}>
-                            +
-                        </button>
-                    )}
-
+                    {page === 'home' && <button onClick={() => setShowPostModal(true)} className="fixed bottom-28 right-5 w-14 h-14 neon-btn rounded-full flex items-center justify-center z-30 active:rotate-90 transition text-black font-bold text-2xl" style={{marginBottom: 'env(safe-area-inset-bottom)'}}>+</button>}
                     {showPostModal && <PostModal db={db} user={user} close={() => setShowPostModal(false)} />}
                 </div>
             );
@@ -216,49 +148,24 @@
 
             React.useEffect(() => {
                 const docRef = db.collection("users").doc(user.email);
-                docRef.get().then(doc => {
-                    if (doc.exists) {
-                        setProfile(doc.data());
-                        setEditName(doc.data().nickname || '');
-                        setEditAvatar(doc.data().avatar || '');
-                    }
-                });
-
+                docRef.get().then(doc => { if(doc.exists) { setProfile(doc.data()); setEditName(doc.data().nickname || ''); setEditAvatar(doc.data().avatar || ''); } });
                 db.collection("news").where("authorEmail", "==", user.email).get().then(snap => setStats(p => ({ ...p, news: snap.size })));
                 db.collection("chat").where("user", "==", user.email.split('@')[0]).get().then(snap => setStats(p => ({ ...p, chat: snap.size })));
             }, []);
 
-            const saveProfile = () => {
-                db.collection("users").doc(user.email).set({ nickname: editName, avatar: editAvatar }, { merge: true });
-                setProfile({ ...profile, nickname: editName, avatar: editAvatar });
-                setIsEditing(false);
-                user.updateProfile({ displayName: editName, photoURL: editAvatar });
-            };
+            const saveProfile = () => { db.collection("users").doc(user.email).set({ nickname: editName, avatar: editAvatar }, { merge: true }); setProfile({ ...profile, nickname: editName, avatar: editAvatar }); setIsEditing(false); user.updateProfile({ displayName: editName, photoURL: editAvatar }); };
+            const adminSetRank = () => { if(!adminTargetEmail || !adminTargetRank) return alert("ใส่ข้อมูลให้ครบ!"); db.collection("users").doc(adminTargetEmail).set({ customRank: adminTargetRank }, { merge: true }).then(() => alert("✅ เรียบร้อย!")); };
 
-            const adminSetRank = () => {
-                if(!adminTargetEmail || !adminTargetRank) return alert("ใส่ข้อมูลให้ครบ!");
-                db.collection("users").doc(adminTargetEmail).set({ customRank: adminTargetRank }, { merge: true })
-                .then(() => alert("✅ เรียบร้อย!"));
-            };
-
-            // 🧮 ระบบคำนวณ Rank (Logic V7)
             const calculateRank = () => {
-                // 1. GOD ADMIN (นายคนเดียว)
                 if (user.email === ADMIN_EMAIL) return { name: "🦄 GOD ADMIN", style: "rank-admin" };
-
-                // 2. ถ้าแอดมินตั้งยศพิเศษให้
                 if (profile.customRank) return { name: `⭐ ${profile.customRank}`, style: "rank-legend" };
-
-                // 3. คนทั่วไป (คำนวณ XP)
                 const xp = (stats.news * 10) + stats.chat;
-                
-                if (xp >= 500) return { name: "👑 PRESIDENT", style: "rank-president" }; // ระดับประธาน (500+ XP)
-                if (xp >= 200) return { name: "👹 EXECUTIVE", style: "rank-executive" }; // ผู้บริหาร (200+ XP)
-                if (xp >= 100) return { name: "🔮 ADVANCED", style: "rank-advanced" }; // ขั้นสูง (100+ XP)
-                if (xp >= 50) return { name: "🔵 GENERAL", style: "rank-general" }; // ทั่วไป (50+ XP)
-                return { name: "🌱 NEWBIE", style: "rank-newbie" }; // ผู้ใช้ใหม่
+                if (xp >= 500) return { name: "👑 PRESIDENT", style: "rank-president" };
+                if (xp >= 200) return { name: "👹 EXECUTIVE", style: "rank-executive" };
+                if (xp >= 100) return { name: "🔮 ADVANCED", style: "rank-advanced" };
+                if (xp >= 50) return { name: "🔵 GENERAL", style: "rank-general" };
+                return { name: "🌱 NEWBIE", style: "rank-newbie" };
             };
-
             const rank = calculateRank();
             const xp = (stats.news * 10) + stats.chat;
 
@@ -268,74 +175,26 @@
                         <div className="absolute top-0 left-0 w-full h-20 bg-gradient-to-b from-purple-500/20 to-transparent"></div>
                         <div className="relative z-10">
                             <div className="w-24 h-24 mx-auto rounded-full p-1 bg-gradient-to-tr from-purple-500 to-pink-500 shadow-[0_0_20px_rgba(192,38,211,0.5)]">
-                                <div className="w-full h-full rounded-full bg-black overflow-hidden">
-                                    <img src={profile.avatar || `https://ui-avatars.com/api/?name=${user.email}&background=random`} className="w-full h-full object-cover" />
-                                </div>
+                                <div className="w-full h-full rounded-full bg-black overflow-hidden"><img src={profile.avatar || `https://ui-avatars.com/api/?name=${user.email}&background=random`} className="w-full h-full object-cover" /></div>
                             </div>
-                            {isEditing ? (
-                                <div className="mt-4 space-y-2">
-                                    <input value={editName} onChange={e=>setEditName(e.target.value)} className="cyber-input text-center font-bold" placeholder="ชื่อเล่น..." />
-                                    <input value={editAvatar} onChange={e=>setEditAvatar(e.target.value)} className="cyber-input text-center text-xs" placeholder="ลิงก์รูปภาพ..." />
-                                    <div className="flex gap-2 justify-center mt-2">
-                                        <button onClick={()=>setIsEditing(false)} className="px-4 py-1 rounded bg-gray-700 text-xs">ยกเลิก</button>
-                                        <button onClick={saveProfile} className="px-4 py-1 rounded bg-green-600 text-xs font-bold">บันทึก</button>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="mt-3">
-                                    <h2 className="text-2xl font-black text-white">{profile.nickname || user.email.split('@')[0]}</h2>
-                                    <p className="text-xs text-gray-400">{user.email}</p>
-                                    <button onClick={()=>setIsEditing(true)} className="mt-2 text-[10px] text-cyan-400 border border-cyan-500/30 px-2 py-0.5 rounded hover:bg-cyan-500/10">✏️ แก้ไขโปรไฟล์</button>
-                                </div>
-                            )}
+                            {isEditing ? ( <div className="mt-4 space-y-2"><input value={editName} onChange={e=>setEditName(e.target.value)} className="cyber-input text-center font-bold" placeholder="ชื่อเล่น..." /><input value={editAvatar} onChange={e=>setEditAvatar(e.target.value)} className="cyber-input text-center text-xs" placeholder="ลิงก์รูปภาพ..." /><div className="flex gap-2 justify-center mt-2"><button onClick={()=>setIsEditing(false)} className="px-4 py-1 rounded bg-gray-700 text-xs">ยกเลิก</button><button onClick={saveProfile} className="px-4 py-1 rounded bg-green-600 text-xs font-bold">บันทึก</button></div></div> ) : ( <div className="mt-3"><h2 className="text-2xl font-black text-white">{profile.nickname || user.email.split('@')[0]}</h2><p className="text-xs text-gray-400">{user.email}</p><button onClick={()=>setIsEditing(true)} className="mt-2 text-[10px] text-cyan-400 border border-cyan-500/30 px-2 py-0.5 rounded hover:bg-cyan-500/10">✏️ แก้ไขโปรไฟล์</button></div> )}
                         </div>
                     </div>
-
-                    {/* Rank Card (ตัวโชว์แสง RGB) */}
-                    <div className={`p-4 rounded-xl flex items-center justify-between transition-all duration-500 ${rank.style}`}>
-                        <div>
-                            <p className="text-[10px] font-bold uppercase tracking-widest opacity-80">Current Rank</p>
-                            <h3 className="text-2xl font-black italic drop-shadow-md">{rank.name}</h3>
-                        </div>
-                        <div className="text-right">
-                            <p className="text-3xl font-bold">{xp}</p>
-                            <p className="text-[10px] opacity-80">Total XP</p>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="glass-card p-3 text-center">
-                            <span className="text-xl">📢</span>
-                            <p className="text-lg font-bold mt-1">{stats.news}</p>
-                            <p className="text-[10px] text-gray-400">News Posted</p>
-                        </div>
-                        <div className="glass-card p-3 text-center">
-                            <span className="text-xl">💬</span>
-                            <p className="text-lg font-bold mt-1">{stats.chat}</p>
-                            <p className="text-[10px] text-gray-400">Chat Msgs</p>
-                        </div>
-                    </div>
-
-                    {user.email === ADMIN_EMAIL && (
-                        <div className="glass-card p-4 border border-red-500/50 bg-red-900/10">
-                            <h3 className="text-red-400 font-bold mb-3 flex items-center gap-2">🛠️ ADMIN ZONE <span className="text-[10px] bg-red-500 text-white px-2 rounded">God Mode</span></h3>
-                            <div className="space-y-2">
-                                <p className="text-xs text-gray-400">ตั้งยศให้ผู้ใช้คนอื่น:</p>
-                                <input value={adminTargetEmail} onChange={e=>setAdminTargetEmail(e.target.value)} className="cyber-input text-xs" placeholder="อีเมลผู้ใช้..." />
-                                <input value={adminTargetRank} onChange={e=>setAdminTargetRank(e.target.value)} className="cyber-input text-xs" placeholder="ฉายาใหม่..." />
-                                <button onClick={adminSetRank} className="w-full py-2 bg-red-600 rounded text-xs font-bold hover:bg-red-500">บันทึกยศใหม่</button>
-                            </div>
-                        </div>
-                    )}
-
+                    <div className={`p-4 rounded-xl flex items-center justify-between transition-all duration-500 ${rank.style}`}><div><p className="text-[10px] font-bold uppercase tracking-widest opacity-80">Current Rank</p><h3 className="text-2xl font-black italic drop-shadow-md">{rank.name}</h3></div><div className="text-right"><p className="text-3xl font-bold">{xp}</p><p className="text-[10px] opacity-80">Total XP</p></div></div>
+                    <div className="grid grid-cols-2 gap-4"><div className="glass-card p-3 text-center"><span className="text-xl">📢</span><p className="text-lg font-bold mt-1">{stats.news}</p><p className="text-[10px] text-gray-400">News Posted</p></div><div className="glass-card p-3 text-center"><span className="text-xl">💬</span><p className="text-lg font-bold mt-1">{stats.chat}</p><p className="text-[10px] text-gray-400">Chat Msgs</p></div></div>
+                    {user.email === ADMIN_EMAIL && (<div className="glass-card p-4 border border-red-500/50 bg-red-900/10"><h3 className="text-red-400 font-bold mb-3 flex items-center gap-2">🛠️ ADMIN ZONE <span className="text-[10px] bg-red-500 text-white px-2 rounded">God Mode</span></h3><div className="space-y-2"><input value={adminTargetEmail} onChange={e=>setAdminTargetEmail(e.target.value)} className="cyber-input text-xs" placeholder="อีเมลผู้ใช้..." /><input value={adminTargetRank} onChange={e=>setAdminTargetRank(e.target.value)} className="cyber-input text-xs" placeholder="ฉายาใหม่..." /><button onClick={adminSetRank} className="w-full py-2 bg-red-600 rounded text-xs font-bold hover:bg-red-500">บันทึกยศใหม่</button></div></div>)}
                     <button onClick={() => auth.signOut()} className="w-full py-4 rounded-xl border border-red-500/30 bg-red-500/10 text-red-400 font-bold flex items-center justify-center gap-2 hover:bg-red-500/20 transition">🚪 ออกจากระบบ</button>
                 </div>
             );
         };
 
-        const PostModal = ({db, user, close}) => {
-            const [title, setTitle] = React.useState('');
-            const [img, setImg] = React.useState('');
-            const [content, setContent] = React.useState('');
-            const [category, setCategory] = React.useState('General');
-    
+        const PostModal = ({db, user, close}) => { const [title, setTitle] = React.useState(''); const [img, setImg] = React.useState(''); const [content, setContent] = React.useState(''); const [category, setCategory] = React.useState('General'); const [link, setLink] = React.useState(''); const submit = () => { if(!title || !content) return alert("กรุณาใส่หัวข้อและเนื้อหาครับ!"); db.collection("news").add({ title, image: img, content, category, link, authorEmail: user.email, authorName: user.displayName || user.email.split('@')[0], time: firebase.firestore.FieldValue.serverTimestamp() }); close(); }; return (<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 animate-fade-in" style={{zIndex: 100}}><div className="glass-card w-full max-w-md p-6 border border-purple-500/50 shadow-2xl max-h-[90vh] overflow-y-auto"><h3 className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-400 mb-4">📢 ลงประกาศ</h3><div className="space-y-3"><select value={category} onChange={e=>setCategory(e.target.value)} className="cyber-select text-white font-bold"><option value="General">📰 ข่าวทั่วไป</option><option value="Esport">🏆 E-Sport</option><option value="Games">🎮 รีวิวเกม</option><option value="Shop">🛍️ ร้านค้า</option></select><input value={title} onChange={e=>setTitle(e.target.value)} className="cyber-input font-bold" placeholder="หัวข้อ..." /><input value={img} onChange={e=>setImg(e.target.value)} className="cyber-input text-sm" placeholder="https://..." />{category === 'Shop' && <input value={link} onChange={e=>setLink(e.target.value)} className="cyber-input text-sm text-green-300" placeholder="🔗 ลิงก์สินค้า" />}<textarea value={content} onChange={e=>setContent(e.target.value)} className="cyber-input h-24"></textarea></div><div className="flex gap-3 mt-6"><button onClick={close} className="flex-1 py-3 rounded-xl bg-gray-800 text-gray-400">ยกเลิก</button><button onClick={submit} className="flex-1 py-3 rounded-xl neon-btn text-black font-bold">โพสต์</button></div></div></div>); };
+        const HomeSection = ({db, user}) => { const [news, setNews] = React.useState([]); const [filter, setFilter] = React.useState('All'); React.useEffect(() => db.collection("news").orderBy("time", "desc").onSnapshot(s => setNews(s.docs.map(d => d.data()))), []); const filteredNews = filter === 'All' ? news : news.filter(n => n.category === filter); return (<div className="px-5 space-y-6 pt-2"><div className="hide-scroll flex gap-3 overflow-x-auto pb-2">{['All', 'Esport', 'Games', 'Shop'].map((t,i) => (<div key={i} onClick={()=>setFilter(t)} className={`px-6 py-2 rounded-lg flex-shrink-0 cursor-pointer border skew-x-[-10deg] transition-all ${filter===t ? 'bg-gradient-to-r from-purple-600 to-blue-600 border-white/40 scale-105 shadow-lg' : 'border-white/10 bg-white/5 hover:bg-white/10'}`}><span className={`block skew-x-[10deg] text-xs font-bold uppercase ${filter===t ? 'text-white':'text-gray-400'}`}>{t === 'All' ? '🔥 Hot' : t}</span></div>))}</div><a href="https://shopee.co.th" target="_blank" className="ad-banner">🔥 9.9 ลดจัดหนัก! กดที่นี่เพื่อช้อป Shopee</a><div className="space-y-4 pb-4"><h3 className="font-bold text-lg flex items-center gap-2"><div className="w-1 h-5 bg-purple-500 rounded-full"></div> {filter === 'All' ? 'อัปเดตล่าสุด' : filter}</h3>{filteredNews.map((n, i) => (<div key={i} className="glass-card overflow-hidden group relative"><span className={`absolute top-2 right-2 px-2 py-1 rounded text-[10px] font-bold z-10 ${n.category==='Shop' ? 'bg-green-500 text-black' : 'bg-purple-600 text-white'}`}>{n.category || 'General'}</span>{n.image ? <div className="h-48 w-full overflow-hidden relative"><img src={n.image} className="w-full h-full object-cover transition duration-500 group-hover:scale-105" onError={(e)=>{e.target.style.display='none'}} /><div className="absolute inset-0 bg-gradient-to-t from-[#0f172a] to-transparent opacity-90"></div></div> : <div className="h-2 w-full bg-gradient-to-r from-purple-900 to-blue-900"></div>}<div className="p-4 relative"><h2 className="text-lg font-bold text-white mb-2 leading-tight">{n.title}</h2><p className="text-sm text-gray-300 font-light leading-relaxed whitespace-pre-line">{n.content}</p><div className="mt-3 flex items-center justify-between">{n.category === 'Shop' && n.link && <a href={n.link} target="_blank" className="px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-center rounded-lg font-bold text-white text-xs hover:scale-[1.02] transition shadow-lg">🛒 สั่งซื้อเลย</a>}<div className="text-[10px] text-gray-400 text-right flex-1 ml-2">โพสต์โดย: {n.authorName || 'Admin'}</div></div></div></div>))}</div></div>); };
+        const ChatSection = ({db, user}) => { const [msgs, setMsgs] = React.useState([]); const [txt, setTxt] = React.useState(''); const dummy = React.useRef(); React.useEffect(() => db.collection("chat").orderBy("time", "asc").onSnapshot(s => { setMsgs(s.docs.map(d => d.data())); setTimeout(() => dummy.current?.scrollIntoView({behavior:'smooth'}), 100); }), []); const send = () => { if(!txt.trim()) return; db.collection("chat").add({ user: user.email.split('@')[0], msg: txt, time: firebase.firestore.FieldValue.serverTimestamp() }); setTxt(''); }; return (<div className="h-full flex flex-col px-5 pt-2"><div className="flex-1 overflow-y-auto space-y-3 pb-4 hide-scroll">{msgs.map((m, i) => { const isMe = m.user === user.email.split('@')[0]; return (<div key={i} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}><div className={`max-w-[80%] p-3 rounded-2xl ${isMe ? 'bg-purple-600 rounded-tr-sm' : 'bg-gray-800 rounded-tl-sm'}`}><span className={`text-[10px] font-bold block mb-1 ${isMe ? 'text-purple-200' : 'text-cyan-400'}`}>{m.user}</span><p className="text-sm">{m.msg}</p></div></div>); })}<div ref={dummy}></div></div><div className="fixed bottom-24 left-4 right-4 flex gap-2" style={{marginBottom: 'env(safe-area-inset-bottom)'}}><input value={txt} onChange={e=>setTxt(e.target.value)} onKeyDown={e=>e.key==='Enter'&&send()} className="flex-1 glass-card px-4 py-3 outline-none text-white" placeholder="พิมพ์ข้อความ..." /><button onClick={send} className="w-12 h-12 bg-cyan-500 rounded-xl flex items-center justify-center font-bold text-black shadow-lg">➤</button></div></div>); };
+        const NavBtn = ({icon, label, active, onClick, color}) => <button onClick={onClick} className={`flex flex-col items-center gap-1 transition-all ${active ? '-translate-y-2' : 'opacity-60'}`}><span className={`text-2xl ${active ? 'drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]' : ''}`}>{icon}</span>{active && <span className={`text-[8px] font-bold tracking-widest ${color}`}>{label}</span>}</button>;
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
